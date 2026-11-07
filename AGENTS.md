@@ -49,7 +49,7 @@ Agents working within this repository maintain, extend, and execute benchmark co
       docker rm -f $containerName 2>$null
   }
   ```
-* Hard execution timeout per run: **600 seconds (10 minutes)**.
+* Hard execution timeout per run: **1200 seconds (20 minutes)**.
 
 ---
 

@@ -1,0 +1,17 @@
+Cross-Module Bugfix: Table Ratio Calculation and Flexible Column Collapse
+
+Problem Description:
+When rendering tables with a mix of fixed-width columns and flexible ratio columns in constrained console widths (e.g. nested tables, or dashboards with Console(width=...)), flexible columns can be collapsed to zero width (rendered as empty adjacent borders "||" with completely vanished headers and cell contents). Furthermore, in edge cases where flexible width is zero or negative (fixed columns take all available width, or columns have empty content with expand=True), the internal ratio distribution algorithm in rich._ratio.ratio_distribute can fail with an unhandled AssertionError ("Sum of ratios must be > 0").
+
+Affected Modules:
+- rich/_ratio.py
+- rich/table.py
+
+Requirements:
+1. In rich/_ratio.py:
+   - ratio_distribute(total, ratios, minimums=None) must gracefully handle edge cases where total <= 0 or the sum of ratios is <= 0 without raising an AssertionError. It should return a list matching the length of ratios (using minimums or zeros).
+   - ratio_resolve(total, edges) must not divide by zero if flexible edges have a sum of ratios equal to 0 or total <= 0.
+2. In rich/table.py:
+   - In Table._calculate_column_widths, when distributing space for flexible columns (with expand=True or column ratios), flexible columns must maintain a viable minimum width (at least 1 character for content plus padding) rather than collapsing to 0-width invisible columns that hide column headers and data.
+   - Column headers and cell values in flexible columns must remain visible and wrapped appropriately even when outer width is tightly constrained.
+3. All existing rich unit tests must continue to pass without regressions.

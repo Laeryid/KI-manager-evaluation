@@ -1,0 +1,23 @@
+Feature Extension: First-Class `double_underline` Style Support and SVG/HTML Export
+
+Problem Description:
+While Rich internally defines an `underline2` attribute bit in `Style`, it lacks first-class support for double underlining. Specifically:
+1. `Style(double_underline=True)` raises a `TypeError` due to a missing keyword argument.
+2. The style parser fails with `StyleSyntaxError` when encountering `double_underline` or `double-underline` in styles or markup tags (e.g. `[double_underline]text[/]`).
+3. Rich's HTML and SVG exporters (`Style.get_html_style()` and `Console.export_svg()`) do not output any CSS for double underline, causing double-underlined text to lose its styling when exported to SVG or HTML.
+
+Requirements:
+1. In `rich/style.py`:
+   - Add `double_underline: Optional[bool] = None` to `Style.__init__`. Setting `double_underline` must set the underlying double-underline bit (bit 9, currently associated with `underline2`).
+   - Expose a `double_underline` boolean property on `Style` (returning True if double-underlined, False if explicitly disabled, or False if unset).
+   - In `Style.STYLE_ATTRIBUTES`, map `"double_underline"`, `"double-underline"`, and `"du"` to `"underline2"`.
+   - In `Style.get_html_style()`, when `self.double_underline` (or `self.underline2`) is True, append `"text-decoration: underline double"` to the generated CSS rules, ensuring clean HTML rendering.
+   - Support `Style.combine()` and addition (`style1 + style2`), preserving `double_underline`.
+2. In `rich/default_styles.py`:
+   - Include `"double_underline": Style(double_underline=True)` (and `"double-underline"`) in default styles.
+3. In `rich/console.py`:
+   - In `Console.export_svg()` (specifically its internal CSS rule builder), output `"text-decoration: underline double;"` when `style.underline2` / `style.double_underline` is True.
+4. Verification:
+   - Markup like `[double_underline]Sample[/]` and `[double-underline red]Alert[/]` must parse and render with ANSI SGR code 21 (or 4:2).
+   - SVG export via `console.export_svg()` / `console.save_svg()` must contain `text-decoration: underline double`.
+   - Existing tests must pass without regressions.

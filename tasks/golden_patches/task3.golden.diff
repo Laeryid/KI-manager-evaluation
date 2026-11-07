@@ -1,0 +1,95 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..32a25f25 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -5,7 +5,7 @@ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
+ 
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json", "Badge"]
+ 
+ if TYPE_CHECKING:
+     from .console import Console
+@@ -173,5 +173,7 @@ def inspect(
+     _console.print(_inspect)
+ 
+ 
++from .badge import Badge
++
+ if __name__ == "__main__":  # pragma: no cover
+     print("Hello, **World**")
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..36095da9
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,68 @@
++"""A visual status badge component with rounded or square ends."""
++
++from typing import Optional
++
++from .cells import cell_len
++from .console import Console, ConsoleOptions, RenderResult
++from .measure import Measurement
++from .segment import Segment
++from .style import StyleType
++
++
++class Badge:
++    """A visual status badge component with rounded pill or square borders.
++
++    Args:
++        text (str): The label text inside the badge.
++        style (StyleType): Style of the badge body. Defaults to "bold white on blue".
++        border_style (StyleType): Style of the boundary caps. Defaults to "blue".
++        pill (bool): If True, uses rounded pill caps '( ' and ' )'. If False, uses square brackets.
++        icon (str, optional): Optional icon or symbol preceding the text.
++    """
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++    def __repr__(self) -> str:
++        return f"Badge({self.text!r}, pill={self.pill})"
++
++    def _get_content(self) -> str:
++        if self.icon:
++            return f"{self.icon} {self.text}"
++        return self.text
++
++    def __rich_console__(
++        self, console: Console, options: ConsoleOptions
++    ) -> RenderResult:
++        """Stream segments for the badge without modifying console buffer or options."""
++        content = self._get_content()
++        badge_style = console.get_style(self.style)
++        border_style = console.get_style(self.border_style)
++
++        left_cap = "( " if self.pill else "[ "
++        right_cap = " )" if self.pill else " ]"
++
++        yield Segment(left_cap, border_style)
++        yield Segment(content, badge_style)
++        yield Segment(right_cap, border_style)
++
++    def __rich_measure__(
++        self, console: Console, options: ConsoleOptions
++    ) -> Measurement:
++        """Calculate measurement based on content length and boundary caps."""
++        content = self._get_content()
++        # Cap length: left_cap (2) + right_cap (2) = 4 cells
++        total_width = cell_len(content) + 4
++        return Measurement(total_width, total_width)

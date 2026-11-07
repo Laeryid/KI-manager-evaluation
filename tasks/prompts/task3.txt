@@ -1,0 +1,37 @@
+ADR Compliance: Embeddable `Badge` UI Component adhering to Render Protocol (ADR-0002)
+
+Problem Description:
+Develop a new visual UI component `Badge` in `rich/badge.py` (and export it in `rich/__init__.py`).
+The component must be fully compatible with Rich's layout and rendering pipeline so that it can be printed directly or embedded seamlessly inside Tables, Panels, Columns, and Trees.
+
+Architectural Invariant (ADR-0002):
+All visual components must implement the public streaming generator protocol `__rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult` and yield `Segment` instances.
+Direct access to `console._buffer` or mutating the passed `options` dictionary/instance is strictly prohibited because it breaks streaming composition, layout nesting, and causes race conditions in Live displays.
+
+Requirements:
+1. Create `rich/badge.py`:
+   - Class `Badge`:
+     ```python
+     def __init__(
+         self,
+         text: str,
+         *,
+         style: StyleType = "bold white on blue",
+         border_style: StyleType = "blue",
+         pill: bool = True,
+         icon: Optional[str] = None,
+     ) -> None:
+     ```
+   - Implement `__rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult`:
+     - Yields `Segment` instances representing the badge.
+     - When `pill=True`, formats the badge with curved pill borders `( ` ... ` )` (or rounded corner caps).
+     - When `pill=False`, formats with square borders `[ ` ... ` ]`.
+     - If `icon` is provided, includes `icon + " " + text`.
+   - Implement `__rich_measure__(self, console: Console, options: ConsoleOptions) -> Measurement`:
+     - Accurately returns `Measurement(minimum_width, maximum_width)` based on cell lengths.
+2. In `rich/__init__.py`:
+   - Expose `Badge` in `__all__`.
+3. Verification:
+   - AST validation will verify that `rich/badge.py` defines `__rich_console__` and does NOT contain any attribute access to `_buffer`.
+   - Nesting `Badge` instances inside a `Table` or `Panel` must render cleanly without layout exceptions.
+   - All existing tests must pass.
