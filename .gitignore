@@ -1,0 +1,14 @@
+# ki-manager — machine-specific (do not commit)
+.ki-base/config.json
+
+# Local artifacts & caches
+.serena/
+results/
+temp_runs/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Target repository checkout (has its own .git repository)
+target_repo/
+

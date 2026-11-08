@@ -152,3 +152,24 @@ In Mode B, only the 7 facade MCP tools are exposed to the evaluated model:
 ```powershell
 .venv\Scripts\python.exe analysis\evaluate_results.py --input-dir results/ --output-dir results/summary/
 ```
+
+
+## Knowledge Items
+
+| File | Topic / Summary |
+|------|-----------------|
+| `KI_benchmark_tasks.md` | Specification of 3 evaluation tasks, hidden pytest test suites, golden reference diffs, and visual demos |
+| `KI_harness_and_sandbox.md` | Docker execution sandbox (pi-secure, non-root user agent), MCP transport via supergateway SSE, and run telemetry |
+| `KI_orchestrator_and_budget.md` | Automated matrix orchestration, staged rollout strategy, financial circuit breaker ($80), and timeout enforcement |
+| `_OVERVIEW.ki.md` | Master benchmark architecture, A/B methodology (162 runs), model tiers, and evaluation metrics |
+
+---
+
+## Architecture Decision Records (ADRs)
+
+| ID | Title | Status | Date | File |
+|----|-------|--------|------|------|
+| 0001 | 0001: Test Isolation & Anti-Cheating Invariant | Accepted | — | [0001-test-isolation-and-anti-cheating.md](.ki-base/decisions/0001-test-isolation-and-anti-cheating.md) |
+| 0002 | 0002: Staged Rollout & Budget Circuit Breaker | Accepted | — | [0002-staged-rollout-and-circuit-breaker.md](.ki-base/decisions/0002-staged-rollout-and-circuit-breaker.md) |
+| 0003 | 0003: Deterministic Supergateway & Container Lifecycle | Accepted | — | [0003-supergateway-ephemeral-port-lifecycle.md](.ki-base/decisions/0003-supergateway-ephemeral-port-lifecycle.md) |
+

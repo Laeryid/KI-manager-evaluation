@@ -1,0 +1,21 @@
+{
+    "project_name": "KI-manager evaluation",
+    "language": "python",
+    "doc_style": "ki-v2",
+    "auto_resolve": true,
+    "paths": {
+        "knowledge_root": ".ki-base",
+        "project_root": ".."
+    },
+    "knowledge_system": {
+        "mcp_server": {
+            "name": "ki-manager",
+            "version": "2.3.0"
+        }
+    },
+    "required_sections": [
+        "Overview",
+        "Key Components",
+        "Related KIs"
+    ]
+}

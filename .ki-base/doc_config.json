@@ -1,0 +1,42 @@
+{
+  "project_name": "KI-manager evaluation",
+  "knowledge_items": {
+    "_OVERVIEW.ki.md": {
+      "summary": "Master benchmark architecture, A/B methodology (162 runs), model tiers, and evaluation metrics",
+      "modules": []
+    },
+    "KI_benchmark_tasks.md": {
+      "summary": "Specification of 3 evaluation tasks, hidden pytest test suites, golden reference diffs, and visual demos",
+      "modules": [
+        "tasks"
+      ]
+    },
+    "KI_harness_and_sandbox.md": {
+      "summary": "Docker execution sandbox (pi-secure, non-root user agent), MCP transport via supergateway SSE, and run telemetry",
+      "modules": [
+        "harness"
+      ]
+    },
+    "KI_orchestrator_and_budget.md": {
+      "summary": "Automated matrix orchestration, staged rollout strategy, financial circuit breaker ($80), and timeout enforcement",
+      "modules": [
+        "orchestrator"
+      ]
+    }
+  },
+  "coverage_settings": {
+    "tracked_modules": [
+      [
+        "tasks",
+        "Benchmark Tasks & Hidden Validation Suites",
+        1
+      ]
+    ],
+    "ignore_dirs": [
+      "target_repo",
+      "results",
+      "temp_runs",
+      ".serena"
+    ]
+  }
+}
