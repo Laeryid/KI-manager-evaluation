@@ -388,6 +388,7 @@ try {
     Write-Host "  -> Executing deterministic cleanup..." -ForegroundColor Gray
 
     if ($sgProcess -and -not $sgProcess.HasExited) {
+        & taskkill.exe /PID $sgProcess.Id /T /F 2>$null | Out-Null
         Stop-Process -Id $sgProcess.Id -Force -ErrorAction SilentlyContinue
     }
     & $DockerScript rm -f $ContainerName 2>$null | Out-Null
