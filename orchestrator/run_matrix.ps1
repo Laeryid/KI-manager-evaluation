@@ -216,6 +216,11 @@ for ($i = 0; $i -lt $Runs.Count; $i++) {
         last_updated = (Get-Date).ToString("o")
     } | ConvertTo-Json -Depth 3
     [System.IO.File]::WriteAllText($MatrixStateFile, $state, (New-Object System.Text.UTF8Encoding $false))
+
+    # Automatically update CSV summaries and Markdown report on the fly
+    try {
+        & $VenvPy (Join-Path $RepoRoot "analysis\evaluate_results.py") --input-dir $ResultsPath --output-dir (Join-Path $ResultsPath "summary") 2>$null
+    } catch {}
 }
 
 $finalCost = Get-CumulativeCost
