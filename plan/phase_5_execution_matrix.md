@@ -28,7 +28,7 @@ flowchart TD
     Smoke["Этап 0: Smoke Test\ngemini-2.5-flash, task1 (Baseline + KI)\nСтоимость: < $0.15"]
     Tier3["Этап 1: Бюджетный эшелон (Tier 3)\ngpt-5.6-luna, gemini-2.5-flash, claude-haiku-5.5\n54 прогона | Стоимость: ~$4.00"]
     Tier2["Этап 2: Рабочие лошадки (Tier 2)\ngemini-3.8-flash, deepseek-v4.1-flash, qwen-2.5-coder\n54 прогона | Стоимость: ~$6.00"]
-    Tier1["Этап 3: Флагманы (Tier 1)\ngpt-5.6-sol, claude-sonnet-4, gemini-4-argon\n54 прогона | Стоимость: ~$32.00"]
+    Tier1["Этап 3: Флагманы (Tier 1)\ngpt-5.6-sol, claude-sonnet-4.5, gemini-4-argon\n54 прогона | Стоимость: ~$32.00"]
     Done["Завершение матрицы:\n162 прогона выполнены"]
 
     Smoke -->|Валидация пройдена| Tier3
@@ -59,7 +59,7 @@ flowchart TD
 * Проверяется эффективность на моделях со специализированным кодовым тюнингом.
 
 ### Этап 3: Tier 1 — Флагманские модели (54 прогона, ~3 часа)
-* Модели: `openai/gpt-5.6-sol`, `anthropic/claude-sonnet-4`, `google/gemini-4-argon`.
+* Модели: `openai/gpt-5.6-sol`, `anthropic/claude-sonnet-4.5`, `google/gemini-4-argon`.
 * Проверяется предел возможностей: ускоряет ли `ki-manager` флагманы и экономит ли дорогие токены за счёт сокращения числа шагов (`Time-to-First-Edit`).
 
 ---

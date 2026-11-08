@@ -42,6 +42,7 @@ param(
     [int]$TimeoutSeconds = 1200,
     [string]$ResultsDir = "results",
     [string]$TempRoot = "C:\Experiments\ki_benchmark_runs",
+    [string]$Thinking = "",
     [switch]$KeepTemp,
     [switch]$DryRun
 )
@@ -72,6 +73,16 @@ Write-Host " [RUNNER] Task         : $Task | Mode: $Mode | Attempt: $Attempt" -F
 Write-Host " [RUNNER] Model        : $Model" -ForegroundColor Cyan
 Write-Host " [RUNNER] Artifacts Dir: $ArtifactsDir" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
+
+# Load .env from repository root if present
+$envFile = Join-Path $RepoRoot ".env"
+if (Test-Path $envFile) {
+    Get-Content $envFile | Where-Object { $_ -match '^([^#=]+)=(.*)$' } | ForEach-Object {
+        $key = $matches[1].Trim()
+        $val = $matches[2].Trim()
+        [System.Environment]::SetEnvironmentVariable($key, $val, "Process")
+    }
+}
 
 if (-not $DryRun -and [string]::IsNullOrWhiteSpace($env:OPENROUTER_API_KEY)) {
     throw "OPENROUTER_API_KEY environment variable is not set."
@@ -119,6 +130,22 @@ try {
 
     New-Item -ItemType Directory -Path $RunDir -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $AgentDir "sessions") -Force | Out-Null
+
+    # Write Pi settings with hardened retry policy and backoff
+    $piSettings = @{
+        retry = @{
+            enabled = $true
+            maxRetries = 5
+            baseDelayMs = 3000
+            maxAgentDelayMs = 60000
+            provider = @{
+                timeoutMs = 300000
+                maxRetries = 3
+                maxRetryDelayMs = 60000
+            }
+        }
+    } | ConvertTo-Json -Depth 5
+    [System.IO.File]::WriteAllText((Join-Path $AgentDir "settings.json"), $piSettings, (New-Object System.Text.UTF8Encoding $false))
 
     # --- 2. Copy Target Repository & Unpack Git ---
     Write-Host "  -> Copying pristine target repository to sandbox..." -ForegroundColor Gray
@@ -213,7 +240,8 @@ try {
     if (-not (Test-Path $PromptFile)) {
         throw "Prompt file not found: $PromptFile"
     }
-    $Prompt = Get-Content $PromptFile -Raw
+    $AgentPromptFile = Join-Path $AgentDir "PROMPT.txt"
+    Copy-Item -Path $PromptFile -Destination $AgentPromptFile -Force
 
     if ($DryRun) {
         Write-Host "`n[DRY RUN] Simulation complete. No Docker container or API calls executed." -ForegroundColor Magenta
@@ -223,6 +251,28 @@ try {
     # --- 5. Container Execution ---
     Write-Host "  -> Spawning sandboxed agent in Docker (pi-secure)..." -ForegroundColor Cyan
     $ContainerLog = Join-Path $ArtifactsDir "container.log"
+
+    $piFlags = @(
+        "--provider", "openrouter",
+        "--model", $Model,
+        "--mode", "json",
+        "--session-dir", "/pi-agent/sessions",
+        "--tools", "+grep,+find,+ls",
+        "--no-skills",
+        "--no-prompt-templates",
+        "--no-themes"
+    )
+    if ($Thinking) {
+        $piFlags += @("--thinking", $Thinking)
+    } elseif ($Model -match "gemini") {
+        # OpenRouter's Gemini proxy fails on multi-turn replay of encrypted reasoning tokens
+        $piFlags += @("--thinking", "off")
+    }
+    $piFlags += $PiExtraArgs
+
+    $LaunchSh = Join-Path $AgentDir "launch_pi.sh"
+    $shContent = "#!/bin/bash`nexec pi -p `"`$(cat /pi-agent/PROMPT.txt)`" " + ($piFlags -join " ") + "`n"
+    [System.IO.File]::WriteAllText($LaunchSh, $shContent, (New-Object System.Text.UTF8Encoding $false))
 
     $dockerArgs = @(
         "run", "--rm",
@@ -238,16 +288,8 @@ try {
         "-v", "${EmptyExtFile}:/pi-extensions.txt:ro",
         "--workdir", "/app",
         "pi-secure:latest",
-        "-p", "`"$Prompt`"",
-        "--provider", "openrouter",
-        "--model", $Model,
-        "--mode", "json",
-        "--session-dir", "/pi-agent/sessions",
-        "--tools", "+grep,+find,+ls",
-        "--no-skills",
-        "--no-prompt-templates",
-        "--no-themes"
-    ) + $PiExtraArgs
+        "bash", "/pi-agent/launch_pi.sh"
+    )
 
     $proc = Start-Process -FilePath "powershell.exe" -ArgumentList @(
         "-NoProfile", "-ExecutionPolicy", "Bypass",

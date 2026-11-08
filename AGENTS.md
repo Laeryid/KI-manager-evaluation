@@ -69,6 +69,12 @@ Agents working within this repository maintain, extend, and execute benchmark co
 * Container User: `agent` (UID 1000, unprivileged, no `root`/`sudo`).
 * Container Flags: `--cap-drop ALL`, `--security-opt no-new-privileges`.
 * Working Directory: `/app`.
+* **Clean Prompt Dispatch Invariant:** To prevent command-line escaping corruption (newlines, quotation marks) across the host PowerShell / WSL boundary and avoid wrapping prompts in file attachment artifacts (`<file>`), the orchestrator writes the prompt to `$AgentDir/PROMPT.txt` and starts Pi inside the container via a launch script (`/pi-agent/launch_pi.sh`):
+  ```bash
+  #!/bin/bash
+  exec pi -p "$(cat /pi-agent/PROMPT.txt)" "$@"
+  ```
+  This guarantees deterministic CLI argument transport while delivering a pristine, unwrapped prompt directly to the model.
 
 ---
 

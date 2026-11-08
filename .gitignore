@@ -2,6 +2,7 @@
 .ki-base/config.json
 
 # Local artifacts & caches
+.env
 .serena/
 results/
 temp_runs/

@@ -64,7 +64,7 @@ $Tier2Models = @(
 
 $Tier1Models = @(
     "openai/gpt-5.6-sol",
-    "anthropic/claude-sonnet-4",
+    "anthropic/claude-sonnet-4.5",
     "google/gemini-4-argon"
 )
 

@@ -14,6 +14,10 @@ RUN ln -s $(which fdfind) /usr/local/bin/fd
 # Install Pi globally (official package is @earendil-works/pi-coding-agent)
 RUN npm install -g @earendil-works/pi-coding-agent@latest
 
+# Copy and apply OpenRouter stability & pacing patch
+COPY patch_pi.py /patch_pi.py
+RUN python3 /patch_pi.py && rm /patch_pi.py
+
 # Copy extension list and entrypoint
 COPY pi-extensions.txt /pi-extensions.txt
 COPY entrypoint.sh /entrypoint.sh
