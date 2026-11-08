@@ -1,0 +1,197 @@
+{
+  "project_name": "rich",
+  "knowledge_items": {
+    "_OVERVIEW.ki.md": {
+      "summary": "Project overview",
+      "modules": []
+    },
+    "KI_rich_emoji.md": {
+      "summary": "Provides core emoji parsing, color representation (RGB/triplets/ANSI palettes), Windows console detection/rendering, and library top-level entry points. It translates high-level text embellishments and color palettes into terminal-safe output.",
+      "depends_on": [
+        "rich/_emoji_codes.py",
+        "rich/_emoji_replace.py",
+        "rich/emoji.py",
+        "rich/__init__.py",
+        "rich/_unicode_data/__init__.py",
+        "rich/_windows.py",
+        "rich/_windows_renderer.py",
+        "rich/color.py",
+        "rich/color_triplet.py"
+      ]
+    },
+    "KI_rich_live.md": {
+      "summary": "Manages dynamic terminal updates, animations, multi-task progress bars, HTML/SVG export templates, and IPython integration. It allows real-time interactive terminal applications to refresh without screen scrolling.",
+      "depends_on": [
+        "rich/live.py",
+        "rich/live_render.py",
+        "rich/progress.py",
+        "rich/progress_bar.py",
+        "rich/_export_format.py",
+        "rich/_extension.py",
+        "rich/_fileno.py",
+        "rich/_inspect.py",
+        "rich/_log_render.py",
+        "rich/_loop.py"
+      ]
+    },
+    "KI_rich_null.md": {
+      "summary": "Provides internal mathematical routines, layout ratio solvers, text wrapping primitives, platform Win32 console structures, and base ABC protocols. It forms the low-level foundation for rendering algorithms.",
+      "depends_on": [
+        "rich/_null_file.py",
+        "rich/_palettes.py",
+        "rich/_pick.py",
+        "rich/_ratio.py",
+        "rich/_spinners.py",
+        "rich/_stack.py",
+        "rich/_timer.py",
+        "rich/_win32_console.py",
+        "rich/_wrap.py",
+        "rich/abc.py"
+      ]
+    },
+    "KI_rich_align.md": {
+      "summary": "Central pipeline of Rich: houses the primary `Console` class, ANSI escape sequence decoder, cell width calculators, border box constants, and alignment/column containers. It coordinates measurement, rendering, and terminal stream emission.",
+      "depends_on": [
+        "rich/align.py",
+        "rich/ansi.py",
+        "rich/bar.py",
+        "rich/box.py",
+        "rich/cells.py",
+        "rich/columns.py",
+        "rich/console.py",
+        "rich/constrain.py",
+        "rich/containers.py",
+        "rich/control.py"
+      ]
+    },
+    "KI_rich_default.md": {
+      "summary": "Houses split-screen terminal layout panes (`Layout`), pattern regex highlighters (`Highlighter`), JSON syntax formatters, Rich logging handlers (`RichHandler`), default theme color rules, and Jupyter notebook rendering shims.",
+      "depends_on": [
+        "rich/default_styles.py",
+        "rich/diagnose.py",
+        "rich/errors.py",
+        "rich/file_proxy.py",
+        "rich/filesize.py",
+        "rich/highlighter.py",
+        "rich/json.py",
+        "rich/jupyter.py",
+        "rich/layout.py",
+        "rich/logging.py"
+      ]
+    },
+    "KI_rich_markdown.md": {
+      "summary": "Provides markdown document parsing, console markup parsing (`[bold red]...[/]`), framed panel containers (`Panel`), recursive object pretty-printing (`Pretty`), user interactive prompts (`Prompt`), and the Rich Console Protocol definitions.",
+      "depends_on": [
+        "rich/markdown.py",
+        "rich/markup.py",
+        "rich/measure.py",
+        "rich/padding.py",
+        "rich/pager.py",
+        "rich/palette.py",
+        "rich/panel.py",
+        "rich/pretty.py",
+        "rich/prompt.py",
+        "rich/protocol.py"
+      ]
+    },
+    "KI_rich_region.md": {
+      "summary": "Defines the atomic rendering primitives of Rich: `Segment` (minimal text+style tuple), `Style` (ANSI attributes container), `Rule` (horizontal dividing lines), `Status` (loading indicators with spinners), and alternate screen buffer controls (`Screen`).",
+      "depends_on": [
+        "rich/region.py",
+        "rich/repr.py",
+        "rich/rule.py",
+        "rich/scope.py",
+        "rich/screen.py",
+        "rich/segment.py",
+        "rich/spinner.py",
+        "rich/status.py",
+        "rich/style.py",
+        "rich/styled.py"
+      ]
+    },
+    "KI_rich_syntax.md": {
+      "summary": "Implements high-level data presentation components: `Table` (grid formatting with auto-wrapping), `Text` (styled character spans), `Syntax` (Pygments code highlighting), `Traceback` (rich exception rendering), and `Tree` (hierarchical tree visualizations).",
+      "depends_on": [
+        "rich/syntax.py",
+        "rich/table.py",
+        "rich/terminal_theme.py",
+        "rich/text.py",
+        "rich/theme.py",
+        "rich/themes.py",
+        "rich/traceback.py",
+        "rich/tree.py",
+        "rich/_unicode_data/_versions.py",
+        "rich/_unicode_data/unicode10-0-0.py"
+      ]
+    },
+    "KI_rich_unicode11-0-0.md": {
+      "summary": "Contains precomputed Unicode East Asian Width lookup tables for modern Unicode specifications (versions 11.0.0 through 17.0.0, plus 4.1.0). These tables determine whether individual Unicode codepoints occupy 0, 1, or 2 terminal character cells.",
+      "depends_on": [
+        "rich/_unicode_data/unicode11-0-0.py",
+        "rich/_unicode_data/unicode12-0-0.py",
+        "rich/_unicode_data/unicode12-1-0.py",
+        "rich/_unicode_data/unicode13-0-0.py",
+        "rich/_unicode_data/unicode14-0-0.py",
+        "rich/_unicode_data/unicode15-0-0.py",
+        "rich/_unicode_data/unicode15-1-0.py",
+        "rich/_unicode_data/unicode16-0-0.py",
+        "rich/_unicode_data/unicode17-0-0.py",
+        "rich/_unicode_data/unicode4-1-0.py"
+      ]
+    },
+    "KI_rich_unicode5-0-0.md": {
+      "summary": "Stores precomputed character width lookup tables for historical Unicode versions (versions 5.0.0 through 9.0.0). It provides backward-compatible East Asian Width measurements for legacy terminal environments and older OS consoles.",
+      "depends_on": [
+        "rich/_unicode_data/unicode5-0-0.py",
+        "rich/_unicode_data/unicode5-1-0.py",
+        "rich/_unicode_data/unicode5-2-0.py",
+        "rich/_unicode_data/unicode6-0-0.py",
+        "rich/_unicode_data/unicode6-1-0.py",
+        "rich/_unicode_data/unicode6-2-0.py",
+        "rich/_unicode_data/unicode6-3-0.py",
+        "rich/_unicode_data/unicode7-0-0.py",
+        "rich/_unicode_data/unicode8-0-0.py",
+        "rich/_unicode_data/unicode9-0-0.py"
+      ]
+    }
+  },
+  "decisions": {
+    "0001": {
+      "title": "0001: Terminal Segments & Atomic Decomposition",
+      "status": "Accepted",
+      "file": "decisions/0001-terminal-segments.md"
+    },
+    "0002": {
+      "title": "0002: Render Protocol & Component Isolation",
+      "status": "Accepted",
+      "file": "decisions/0002-render-protocol.md"
+    },
+    "0003": {
+      "title": "0003: Style Composition & ANSI Sequences",
+      "status": "Accepted",
+      "file": "decisions/0003-style-composition-and-ansi.md"
+    },
+    "0004": {
+      "title": "0004: Ratio Distribution & Column Allocation",
+      "status": "Accepted",
+      "file": "decisions/0004-ratio-distribution-and-layout.md"
+    }
+  },
+  "coverage_settings": {
+    "tracked_modules": [
+      [
+        "rich",
+        "Rich Core",
+        5
+      ]
+    ],
+    "ignore_dirs": [
+      "benchmarks",
+      "docs",
+      "docs\\source",
+      "examples",
+      "tests",
+      "tools"
+    ]
+  }
+}
