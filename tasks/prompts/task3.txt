@@ -1,12 +1,11 @@
-ADR Compliance: Embeddable `Badge` UI Component adhering to Render Protocol (ADR-0002)
+Component Implementation: Embeddable `Badge` UI Component
 
 Problem Description:
-Develop a new visual UI component `Badge` in `rich/badge.py` (and export it in `rich/__init__.py`).
-The component must be fully compatible with Rich's layout and rendering pipeline so that it can be printed directly or embedded seamlessly inside Tables, Panels, Columns, and Trees.
+Develop a new visual status badge component `Badge` in `rich/badge.py` (and export it in `rich/__init__.py` and `rich.__all__`).
+The component must be fully compatible with Rich's layout and rendering pipeline so that it can be printed directly via `console.print(badge)` or embedded seamlessly inside Tables, Panels, Columns, and Trees.
 
-Architectural Invariant (ADR-0002):
-All visual components must implement the public streaming generator protocol `__rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult` and yield `Segment` instances.
-Direct access to `console._buffer` or mutating the passed `options` dictionary/instance is strictly prohibited because it breaks streaming composition, layout nesting, and causes race conditions in Live displays.
+Architectural Standard:
+The component must strictly adhere to the internal architectural conventions of this repository (as documented in the project Architecture Decision Records). It must implement the standard streaming render protocol and measurement protocol accepted in the codebase, properly handling standalone and nested layouts without breaking composition or accessing private console state.
 
 Requirements:
 1. Create `rich/badge.py`:
@@ -22,16 +21,12 @@ Requirements:
          icon: Optional[str] = None,
      ) -> None:
      ```
-   - Implement `__rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult`:
-     - Yields `Segment` instances representing the badge.
-     - When `pill=True`, formats the badge with curved pill borders `( ` ... ` )` (or rounded corner caps).
-     - When `pill=False`, formats with square borders `[ ` ... ` ]`.
-     - If `icon` is provided, includes `icon + " " + text`.
-   - Implement `__rich_measure__(self, console: Console, options: ConsoleOptions) -> Measurement`:
-     - Accurately returns `Measurement(minimum_width, maximum_width)` based on cell lengths.
+   - When `pill=True`, formats the badge with curved pill borders `( ` ... ` )`.
+   - When `pill=False`, formats with square borders `[ ` ... ` ]`.
+   - If `icon` is provided, includes `icon + " " + text`.
+   - Accurately reports cell measurement based on character cell lengths.
 2. In `rich/__init__.py`:
-   - Expose `Badge` in `__all__`.
+   - Expose `Badge` in `__all__` and make it importable from the top-level `rich` package.
 3. Verification:
-   - AST validation will verify that `rich/badge.py` defines `__rich_console__` and does NOT contain any attribute access to `_buffer`.
-   - Nesting `Badge` instances inside a `Table` or `Panel` must render cleanly without layout exceptions.
-   - All existing tests must pass.
+   - Must comply with project architectural standards and render cleanly when printed standalone or nested inside Tables and Panels.
+   - All existing tests must continue to pass without regressions.

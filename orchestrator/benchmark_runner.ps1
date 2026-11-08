@@ -159,14 +159,18 @@ try {
         & $VenvPy -c "import zipfile; zipfile.ZipFile(r'$gitZip').extractall(r'$RunDir')"
     }
 
-    # Ensure clean git state on pristine rich
+    # Ensure clean git state on pristine rich with strict LF line endings
     Push-Location $RunDir
     try {
+        & git config core.autocrlf false
+        & git config core.eol lf
         & git checkout -- . 2>$null
         & git clean -fd 2>$null
     } finally {
         Pop-Location
     }
+    # Enforce pure LF endings on all Python source files in sandbox
+    & $VenvPy -c "from pathlib import Path; [p.write_bytes(p.read_bytes().replace(b'\r\n', b'\n')) for p in Path(r'$RunDir').rglob('*.py') if p.is_file()]"
 
     # --- 3. Mode Configuration (A/B Setup) ---
     $PiExtraArgs = @()

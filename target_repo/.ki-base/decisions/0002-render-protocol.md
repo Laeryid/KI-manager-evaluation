@@ -24,6 +24,10 @@ Rich supports arbitrary nested UI components (such as Panels inside Tables insid
    - **Options Immutability:** The passed `options: ConsoleOptions` instance is strictly read-only. Components must never mutate its fields. To adjust constraints for child components, use `options.update(...)` which returns a fresh copy.
    - **Stateless Yielding:** Generators must be re-entrant and idempotent so that multiple render passes (e.g. measuring then rendering) produce identical results without side effects.
 
+3. **Internal Spacing Convention for Inline Badges:**
+   - In accordance with repository design conventions, inline badge components must enclose their inner text with exactly one space of padding inside the boundary caps: `"( "` + content + `" )"` for pill badges, and `"[" + " "` + content + `" ]"` for square badges.
+   - Example: `Badge("DEPLOYED", pill=True, icon="★")` must yield segments rendering as `"( ★ DEPLOYED )"`. Square badges render as `"[ SYSTEM ALERT ]"`. Measurement must include the 4 cells occupied by borders and inner spaces.
+
 ## Consequences
 
 - Components can be composed arbitrarily without side effects.

@@ -65,9 +65,7 @@ def test_badge_standalone_render():
     console.print(badge)
 
     rendered = console.export_text()
-    assert "DEPLOYED" in rendered
-    assert "★" in rendered
-    assert "(" in rendered and ")" in rendered
+    assert "( ★ DEPLOYED )" in rendered, "Badge must follow ADR-0002 internal spacing: '( <content> )'"
 
 
 def test_badge_embedded_in_table():
@@ -86,8 +84,8 @@ def test_badge_embedded_in_table():
     rendered = console.export_text()
 
     assert "Payment Gateway" in rendered
-    assert "HEALTHY" in rendered
-    assert "OFFLINE" in rendered
+    assert "( ● HEALTHY )" in rendered or "HEALTHY" in rendered
+    assert "( ■ OFFLINE )" in rendered or "OFFLINE" in rendered
 
 
 def test_badge_embedded_in_panel():
@@ -99,8 +97,7 @@ def test_badge_embedded_in_panel():
     console.print(panel)
 
     rendered = console.export_text()
-    assert "SYSTEM ALERT" in rendered
-    assert "[" in rendered and "]" in rendered
+    assert "[ SYSTEM ALERT ]" in rendered, "Square Badge must follow ADR-0002 internal spacing: '[ <content> ]'"
 
 
 def test_badge_measurement():
