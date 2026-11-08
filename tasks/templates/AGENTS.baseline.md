@@ -47,15 +47,15 @@ Rich is a Python library for rich text and beautiful terminal formatting with ze
 
 ## 3. Testing & Verification Workflow
 
-Always verify changes using targeted `pytest` commands before concluding your turn:
+`pytest` and all Rich dependencies are pre-installed in the environment. Always verify your changes using targeted `pytest` commands for the relevant module(s) before concluding your turn:
 
 ```bash
-# Run unit tests for a specific module
-pytest tests/test_table.py -v
+# Run ratio and table layout tests
+pytest tests/test_ratio.py tests/test_table.py -q
 
-# Run styling tests
-pytest tests/test_style.py tests/test_markup.py -v
+# Run styling and markup tests
+pytest tests/test_style.py tests/test_markup.py -q
 
-# Run the complete test suite
-pytest tests/ -q
+# Run protocol and container tests
+pytest tests/test_protocol.py tests/test_panel.py -q
 ```

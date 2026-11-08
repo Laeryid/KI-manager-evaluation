@@ -28,6 +28,10 @@ RUN userdel -r node && useradd -m -u 1000 -s /bin/bash agent
 # Fix line endings (CRLF -> LF) in case file was edited on Windows
 RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh
 
+# Pre-install Python test dependencies for Textualize/rich so pytest works out-of-the-box
+RUN pip3 install --break-system-packages --no-cache-dir \
+    pytest "pygments==2.13.0" markdown-it-py attrs typing-extensions
+
 EXPOSE 19432
 USER agent
 WORKDIR /app

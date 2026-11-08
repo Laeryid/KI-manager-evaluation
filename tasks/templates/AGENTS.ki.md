@@ -47,39 +47,38 @@ Rich is a Python library for rich text and beautiful terminal formatting with ze
 
 ## 3. Testing & Verification Workflow
 
-Always verify changes using targeted `pytest` commands before concluding your turn:
+`pytest` and all Rich dependencies are pre-installed in the environment. Always verify your changes using targeted `pytest` commands for the relevant module(s) before concluding your turn:
 
 ```bash
-# Run unit tests for a specific module
-pytest tests/test_table.py -v
+# Run ratio and table layout tests
+pytest tests/test_ratio.py tests/test_table.py -q
 
-# Run styling tests
-pytest tests/test_style.py tests/test_markup.py -v
+# Run styling and markup tests
+pytest tests/test_style.py tests/test_markup.py -q
 
-# Run the complete test suite
-pytest tests/ -q
+# Run protocol and container tests
+pytest tests/test_protocol.py tests/test_panel.py -q
 ```
 
 ---
 
 ## 4. Architectural Knowledge Base (`ki-manager` MCP)
 
-This repository is indexed by [**`ki-manager`**](https://github.com/Laeryid/KI-base), an architectural knowledge server exposing curated Knowledge Items (KIs) and Architecture Decision Records (ADRs).
+This repository is indexed by [**`ki-manager`**](https://github.com/Laeryid/KI-base), an active MCP server exposing curated Knowledge Items (KIs) and Architecture Decision Records (ADRs) with exact file locations, line ranges, and architectural invariants.
 
-### Knowledge Base Organization
-- System Container: `.ki-base/`
-- Directory Index: `.ki-base/DIR_INDEX.md`
-- Master Architecture Overview: `.ki-base/knowledge/_OVERVIEW.ki.md`
-- Knowledge Items (KIs): `.ki-base/knowledge/*.ki.md`
-- Architecture Decision Records (ADRs): `.ki-base/decisions/*.md`
+### Available MCP Tools (Direct Exposure)
+- `mcp__ki_manager__ki_search`: BM25 search across all KIs and ADRs (`query`, `scope="all"|"ki"|"adr"`, `limit`).
+- `mcp__ki_manager__ki_read`: Read a specific KI or ADR by filename (`rel_path`, optional `section`).
+- `mcp__ki_manager__ki_list`: List all registered KIs and ADRs (`scope="all"|"ki"|"adr"`).
+- `mcp__ki_manager__ki_instructions`: Retrieve workflow instructions (`document="overview"|"knowledge-items"`).
 
-### Recommended Agent Workflow
-1. **Explore Architecture Before Editing**:
-   - Call `ki_search(query="...")` with keywords related to your task (e.g. `table ratio column`, `style attributes`, `render protocol`).
-   - Call `ki_read(rel_path="...")` to read the identified KI or ADR and extract architectural constraints and invariants.
-2. **Consult Available Knowledge Items & ADRs**:
-   - Call `ki_list()` or `ki_instructions(document="knowledge-items")` to view the full catalog of indexed documentation.
-   - Always ensure your implementation adheres to relevant ADRs.
+### Mandatory Agent Workflow
+1. **Query `ki-manager` FIRST (Before Reading Source Code)**:
+   - Always start your task by calling `mcp__ki_manager__ki_search(query="...")` or `mcp__ki_manager__ki_read(rel_path="...")` for the relevant KI and ADR from the tables below.
+   - The Knowledge Items contain **exact line numbers and method invariants** (e.g. `L523–L585` in `rich/table.py` or `L2342–L2415` in `rich/console.py`).
+2. **Use Targeted File Reads (`offset` / `limit`)**:
+   - Once `mcp__ki_manager__ki_read` gives you the exact line numbers and invariants, use `read(path="...", offset=..., limit=...)` to inspect only the target lines instead of reading entire 1,000–2,600 line files.
+   - Always ensure your changes strictly comply with the relevant ADRs (`0001`–`0004`).
 
 ### Knowledge Items Manifest
 

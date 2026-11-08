@@ -223,10 +223,10 @@ def parse_run_dir(run_path: Path) -> Optional[RunRecord]:
     task = meta.get("task", "task1")
     mode = meta.get("mode", "baseline")
     model = meta.get("model", "unknown")
-    attempt = int(meta.get("attempt", 1))
-    duration = int(meta.get("duration_seconds", 0))
+    attempt = int(meta.get("attempt") or 1)
+    duration = int(meta.get("duration_seconds") or 0)
     timed_out = bool(meta.get("timed_out", False))
-    exit_code = int(meta.get("exit_code", 0))
+    exit_code = int(meta.get("exit_code") or 0)
 
     # Pytest evaluation grades
     eval_passed, eval_failed_cnt, eval_passed_cnt = parse_pytest_report(run_path / "grade.json")

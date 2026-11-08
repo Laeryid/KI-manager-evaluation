@@ -123,7 +123,7 @@ function Get-CumulativeCost {
             try {
                 $lines = [System.IO.File]::ReadAllLines($sf.FullName)
                 foreach ($l in $lines) {
-                    if ($l -match '"cost":\s*\{\s*"input":[^,]+,"output":[^,]+,"cacheRead":[^,]+,"cacheWrite":[^,]+,"total":\s*([0-9.]+)\}') {
+                    if ($l -match '"cost":\s*\{.*?"total":\s*([0-9.]+)') {
                         $cost += [double]$Matches[1]
                     }
                 }
@@ -149,7 +149,8 @@ for ($i = 0; $i -lt $Runs.Count; $i++) {
     if (Test-Path $runMetaFile) {
         try {
             $meta = Get-Content $runMetaFile -Raw | ConvertFrom-Json
-            if ($meta.exit_code -eq 0 -and -not $meta.timed_out) {
+            $code = if ($null -ne $meta.exit_code) { [int]$meta.exit_code } else { 0 }
+            if ($code -eq 0 -and -not $meta.timed_out -and (Test-Path (Join-Path $runArtifacts "grade.json"))) {
                 Write-Host "    -> Already completed successfully. Skipping." -ForegroundColor DarkGray
                 $completedCount++
                 continue

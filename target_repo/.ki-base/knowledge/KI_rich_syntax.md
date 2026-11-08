@@ -28,7 +28,10 @@ Implements high-level data presentation components: `Table` (grid formatting wit
 - Test files: `tests/test_table.py`, `tests/test_text.py`, `tests/test_syntax.py`, `tests/test_traceback.py`, `tests/test_tree.py`
 
 ## Non-obvious Details
-- **Table width solving**: `Table` calculates column sizes in multiple passes: fixed widths first, followed by ratio distribution, and finally wrapping flexible text columns.
+- **Table Width Solving in `rich/table.py` (L523–L585, ADR-0004)**:
+  - `Table._calculate_column_widths(self, console: Console, options: ConsoleOptions) -> List[int]` (L523): Computes column widths (including padding, excluding border `self._extra_width`).
+  - When `self.expand` is True and `columns` have `flexible` ratios (L535–L555), `flex_minimum` (L543) computes minimum widths for flexible columns (`max((column.min_width or 1) + get_padding_width(column._index), _range.minimum)`), and distributes `flexible_width = max(sum(flex_minimum), max_width - sum(fixed_widths))` via `ratio_distribute(flexible_width, ratios, flex_minimum)`.
+  - When `table_width > max_width` (L556–L575), `_collapse_widths` and `ratio_reduce` shrink columns, but must enforce `min_widths = [(column.min_width or 1) + get_padding_width(column._index) for column in columns]` so flexible columns never collapse to 0 width (`max_reduce = [max(0, w - min_w) for w, min_w in zip(widths, min_widths)]` and `widths = [max(min_w, _range.maximum or 0) ...]`).
 - **Traceback suppression flags**: Setting `_rich_traceback_omit = True` or `_rich_traceback_guard = True` inside a function's local scope conceals internal boilerplate frames during crashes.
 - **Text span arithmetic**: When slicing or joining `Text` objects, character index spans are adjusted or split automatically to preserve original formatting.
 

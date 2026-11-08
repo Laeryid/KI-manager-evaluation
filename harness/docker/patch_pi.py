@@ -27,12 +27,12 @@ for root, dirs, files in os.walk("/usr/local/lib/node_modules/@earendil-works/")
                     patch_count_retry += 1
                     print(f"  -> Patched retry pattern in: {p}")
                 
-                # 2. Add 1.5s rate-limit pacing before API calls to OpenRouter
+                # 2. Add 0.5s rate-limit pacing before API calls to OpenRouter
                 target_pacing = "const { data: openaiStream, response } = await retryProviderRequest("
-                if target_pacing in content and "setTimeout(r, 1500)" not in content:
+                if target_pacing in content and "setTimeout(r, 500)" not in content:
                     content = content.replace(
                         target_pacing,
-                        "await new Promise(r => setTimeout(r, 1500));\n            " + target_pacing
+                        "await new Promise(r => setTimeout(r, 500));\n            " + target_pacing
                     )
                     modified = True
                     patch_count_pacing += 1

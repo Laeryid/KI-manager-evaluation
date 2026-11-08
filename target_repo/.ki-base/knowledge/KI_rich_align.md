@@ -30,7 +30,7 @@ Central pipeline of Rich: houses the primary `Console` class, ANSI escape sequen
 ## Non-obvious Details
 - **Automatic stream sniffing**: `Console` checks `COLORTERM`, `TERM`, `FORCE_COLOR`, and `NO_COLOR` upon initialization. If stdout is redirected to a pipe or file, color highlighting is stripped unless `force_terminal=True`.
 - **Double-width character calculation**: `cell_len()` does not use string `len()`; it queries character codepoint tables in `_unicode_data` to properly account for wide East Asian symbols and multi-byte emojis.
-- **Recording output**: `Console(record=True)` stores all rendered segments into an internal buffer, exportable via `export_text()`, `export_html()`, or `export_svg()`.
+- **Recording & SVG/HTML Export (`rich/console.py`, L2260–L2420)**: `Console(record=True)` stores all rendered segments into an internal buffer, exportable via `export_text()`, `export_html()`, or `export_svg()`. In `Console.export_svg` (L2342–L2415), the internal `get_svg_style(style: Style)` helper at L2390–L2405 constructs `css_rules` for each segment (`if style.underline2: css_rules.append("text-decoration: underline double;") elif style.underline: css_rules.append("text-decoration: underline;")`).
 
 ## Common Pitfalls
 - **Mismatched width constraints**: Wrapping a wide table or syntax block inside `Align.center` with `width` exceeding terminal dimensions will cause line wraps that ruin horizontal centering.

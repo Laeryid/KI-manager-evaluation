@@ -173,15 +173,20 @@ try {
 
     if ($Mode -eq "baseline") {
         Write-Host "  -> Configuring Mode A (Baseline)..." -ForegroundColor Yellow
+        # Ensure .ki-base is completely absent in Baseline mode
+        Remove-Item -Path (Join-Path $RunDir ".ki-base") -Recurse -Force -ErrorAction SilentlyContinue
         # Deploy realistic maintainer guidelines (no spoilers, no MCP)
         Copy-Item -Path (Join-Path $TasksDir "templates\AGENTS.baseline.md") -Destination (Join-Path $RunDir "AGENTS.md") -Force
-        $PiExtraArgs += "--no-mcp"
+        $PiExtraArgs += @("--no-mcp", "--tools", "read,bash,edit,write,grep,find,ls")
     }
     else {
         Write-Host "  -> Configuring Mode B (KI-Enabled with StreamableHTTP supergateway)..." -ForegroundColor Green
-        # Copy curated knowledge base into sandbox
+        # Copy curated knowledge base into sandbox without nesting .ki-base/.ki-base
+        $kiDest = Join-Path $RunDir ".ki-base"
+        Remove-Item -Path $kiDest -Recurse -Force -ErrorAction SilentlyContinue
         $kiSource = Join-Path $TargetRepo ".ki-base"
-        Copy-Item -Path $kiSource -Destination (Join-Path $RunDir ".ki-base") -Recurse -Force
+        Copy-Item -Path $kiSource -Destination $kiDest -Recurse -Force
+        $PiExtraArgs += @("--tools", "read,bash,edit,write,grep,find,ls,mcp__*")
 
         # Deploy enriched guidelines with Knowledge Items & ADRs
         Copy-Item -Path (Join-Path $TasksDir "templates\AGENTS.ki.md") -Destination (Join-Path $RunDir "AGENTS.md") -Force
@@ -257,7 +262,6 @@ try {
         "--model", $Model,
         "--mode", "json",
         "--session-dir", "/pi-agent/sessions",
-        "--tools", "+grep,+find,+ls",
         "--no-skills",
         "--no-prompt-templates",
         "--no-themes"
@@ -309,7 +313,8 @@ try {
         }
     }
 
-    $containerExitCode = if ($timedOut) { -999 } else { $proc.ExitCode }
+    try { $proc.WaitForExit() } catch {}
+    $containerExitCode = if ($timedOut) { -999 } else { if ($proc.ExitCode -ne $null) { [int]$proc.ExitCode } else { 0 } }
     Write-Host "  -> Agent execution finished (Exit Code: $containerExitCode, Elapsed: $([int]$timeoutSw.Elapsed.TotalSeconds)s)" -ForegroundColor Gray
 
     # --- 6. Persist Session Telemetry ---
@@ -326,11 +331,12 @@ try {
     Write-Host "  -> Extracting patch.diff..." -ForegroundColor Gray
     Push-Location $RunDir
     try {
-        # Restore AGENTS.md so guideline differences do not pollute agent code diff
-        & git checkout -- AGENTS.md 2>$null
+        # Restore AGENTS.md and .ki-base so setup differences do not pollute agent code diff
+        Remove-Item -Path (Join-Path $RunDir ".ki-base") -Recurse -Force -ErrorAction SilentlyContinue
+        & git checkout -- AGENTS.md .ki-base 2>$null
         # Include any newly created files (e.g. rich/badge.py)
         & git add -N . 2>$null
-        $diff = & git diff HEAD
+        $diff = & git diff HEAD -- . ":!AGENTS.md" ":!.ki-base"
         [System.IO.File]::WriteAllText((Join-Path $ArtifactsDir "patch.diff"), ($diff -join "`n"), (New-Object System.Text.UTF8Encoding $false))
     } finally {
         Pop-Location

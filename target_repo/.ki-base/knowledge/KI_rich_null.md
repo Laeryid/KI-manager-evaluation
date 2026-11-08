@@ -26,7 +26,9 @@ Provides internal mathematical routines, layout ratio solvers, text wrapping pri
 - Test files: `tests/test_ratio.py`, `tests/test_null_file.py`, `tests/test_win32_console.py`
 
 ## Non-obvious Details
-- **Integer ratio distribution rounding**: `ratio_resolve` distributes remainder pixels based on largest fractional residuals to ensure sum of parts exactly equals total width.
+- **Ratio Solvers in `rich/_ratio.py` (ADR-0004)**:
+  - `ratio_resolve(total: int, edges: Sequence[Edge]) -> List[int]` (L14–L85): Solves proportional widths for `Layout` and `Table`. If `total <= 0`, returns `[edge.size or edge.minimum_size or 1 for edge in edges]`. In the loop (L48–L60), `flexible_edges` are resolved using `_Fraction(remaining, sum((edge.ratio or 1) for _, edge in flexible_edges))`. Guard against `sum_ratios <= 0` or `remaining <= 0` to avoid `ZeroDivisionError`.
+  - `ratio_distribute(total: int, ratios: List[int], minimums: Optional[List[int]] = None) -> List[int]` (L107–L145): Distributes integer `total` across `ratios`. Note: if `minimums` is passed, `ratios = [ratio if _min else 0 for ratio, _min in zip(ratios, minimums)]` can zero out all ratios when `minimums` contains zeros, causing `assert total_ratio > 0` (L123) to raise `AssertionError`. When `total <= 0` or `total_ratio <= 0`, it must return `list(minimums)` (if `minimums` is provided) or `[0] * len(ratios)` instead of asserting.
 - **NullFile compatibility**: Some 3rd-party libraries verify `.isatty()` or `.fileno()`; `NullFile` overrides these to gracefully avoid `io.UnsupportedOperation`.
 
 ## Common Pitfalls
