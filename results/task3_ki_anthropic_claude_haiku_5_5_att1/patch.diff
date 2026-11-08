@@ -1,0 +1,168 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..d80b4903 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -4,8 +4,9 @@ import os
+ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
++from .badge import Badge  # noqa: F401
+ 
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json", "Badge"]
+ 
+ if TYPE_CHECKING:
+     from .console import Console
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..907a06c9
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,83 @@
++from typing import TYPE_CHECKING, List, Optional
++
++from .cells import cell_len
++from .measure import Measurement
++from .segment import Segment
++from .style import StyleType
++
++if TYPE_CHECKING:
++    from .console import Console, ConsoleOptions, RenderResult
++
++
++class Badge:
++    """A compact, single-line status badge.
++
++    Pill badges are wrapped in curved caps ``( `` and `` )``; square badges use
++    ``[ `` and `` ]``. The content is padded with one space on each side inside
++    the caps, following the repository's inline badge convention.
++
++    Args:
++        text (str): Text to display in the badge.
++        style (StyleType, optional): Style applied to the badge content. Defaults to "bold white on blue".
++        border_style (StyleType, optional): Style applied to the boundary caps. Defaults to "blue".
++        pill (bool, optional): Use curved pill caps if True, square caps if False. Defaults to True.
++        icon (str, optional): An optional icon rendered before the text. Defaults to None.
++    """
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++    @property
++    def _content(self) -> str:
++        """str: The text to display, including the icon if one is set."""
++        if self.icon:
++            return f"{self.icon} {self.text}"
++        return self.text
++
++    def __rich_console__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> "RenderResult":
++        left, right = ("(", ")") if self.pill else ("[", "]")
++        content_style = console.get_style(self.style)
++        border = console.get_style(self.border_style)
++        segments: List[Segment] = [
++            Segment(f"{left} ", border),
++            Segment(self._content, content_style),
++            Segment(f" {right}", border),
++        ]
++        lines = Segment.split_and_crop_lines(
++            segments, options.max_width, pad=False, include_new_lines=False
++        )
++        for line in lines:
++            yield from line
++            yield Segment.line()
++
++    def __rich_measure__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> Measurement:
++        # Two caps plus one padding space on each side of the content.
++        width = cell_len(self._content) + 4
++        return Measurement(width, width).clamp(max_width=options.max_width)
++
++
++if __name__ == "__main__":  # pragma: no cover
++    from rich import print
++
++    print(Badge("DEPLOYED", icon="★"))
++    print(
++        Badge(
++            "SYSTEM ALERT", pill=False, style="bold white on red", border_style="red"
++        )
++    )
+diff --git a/tests/test_badge.py b/tests/test_badge.py
+new file mode 100644
+index 00000000..ade7a3d2
+--- /dev/null
++++ b/tests/test_badge.py
+@@ -0,0 +1,58 @@
++import io
++
++import rich
++from rich.badge import Badge
++from rich.columns import Columns
++from rich.console import Console
++from rich.measure import Measurement
++from rich.panel import Panel
++from rich.table import Table
++
++
++def _render(renderable, width: int = 60) -> str:
++    console = Console(
++        file=io.StringIO(), width=width, color_system=None, legacy_windows=False
++    )
++    console.print(renderable)
++    return console.file.getvalue()  # type: ignore[attr-defined]
++
++
++def test_exported() -> None:
++    assert "Badge" in rich.__all__
++    assert rich.Badge is Badge
++
++
++def test_pill_and_square_caps() -> None:
++    assert _render(Badge("OK")) == "( OK )\n"
++    assert _render(Badge("OK", pill=False)) == "[ OK ]\n"
++
++
++def test_icon() -> None:
++    assert _render(Badge("DEPLOYED", icon="★")) == "( ★ DEPLOYED )\n"
++
++
++def test_measurement() -> None:
++    console = Console(width=80)
++    measurement = Measurement.get(console, console.options, Badge("DEPLOYED", icon="★"))
++    assert measurement == Measurement(14, 14)
++    assert len("( ★ DEPLOYED )") == 14
++
++
++def test_measurement_wide_characters() -> None:
++    console = Console(width=80)
++    # "中文" occupies 4 cells; 4 cells of caps and padding are added.
++    measurement = Measurement.get(console, console.options, Badge("中文"))
++    assert measurement == Measurement(8, 8)
++
++
++def test_nested_in_table_panel_columns() -> None:
++    table = Table()
++    table.add_column("State")
++    table.add_row(Badge("OK"))
++    assert "( OK )" in _render(table)
++    assert "( OK )" in _render(Panel(Badge("OK")))
++    assert "( A )" in _render(Columns([Badge("A"), Badge("B", pill=False)]))
++
++
++def test_crops_to_narrow_width() -> None:
++    assert _render(Badge("TOO LONG TEXT"), width=8) == "( TOO LO\n"

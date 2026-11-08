@@ -1,0 +1,12 @@
+{
+    "mode":  "baseline",
+    "timed_out":  false,
+    "end_time":  "2026-11-08T21:24:59.0085158+01:00",
+    "attempt":  1,
+    "duration_seconds":  95,
+    "task":  "task2",
+    "model":  "openai/gpt-5.6-luna",
+    "run_id":  "task2_baseline_openai_gpt_5_6_luna_att1",
+    "exit_code":  0,
+    "start_time":  "2026-11-08T21:23:23.6702262+01:00"
+}

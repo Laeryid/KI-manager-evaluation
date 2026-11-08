@@ -1,0 +1,14 @@
+diff --git a/rich/_ratio.py b/rich/_ratio.py
+index 5fd5a383..e0edcc05 100644
+--- a/rich/_ratio.py
++++ b/rich/_ratio.py
+@@ -120,7 +120,8 @@ def ratio_distribute(
+     if minimums:
+         ratios = [ratio if _min else 0 for ratio, _min in zip(ratios, minimums)]
+     total_ratio = sum(ratios)
+-    assert total_ratio > 0, "Sum of ratios must be > 0"
++    if total <= 0 or total_ratio <= 0:
++        return list(minimums) if minimums else [0] * len(ratios)
+ 
+     total_remaining = total
+     distributed_total: List[int] = []

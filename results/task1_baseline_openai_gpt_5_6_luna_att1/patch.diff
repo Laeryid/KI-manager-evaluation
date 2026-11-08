@@ -1,0 +1,108 @@
+diff --git a/rich/_ratio.py b/rich/_ratio.py
+index 5fd5a383..6412b1c5 100644
+--- a/rich/_ratio.py
++++ b/rich/_ratio.py
+@@ -120,20 +120,26 @@ def ratio_distribute(
+     if minimums:
+         ratios = [ratio if _min else 0 for ratio, _min in zip(ratios, minimums)]
+     total_ratio = sum(ratios)
+-    assert total_ratio > 0, "Sum of ratios must be > 0"
+-
+-    total_remaining = total
+-    distributed_total: List[int] = []
+-    append = distributed_total.append
+     if minimums is None:
+         _minimums = [0] * len(ratios)
+     else:
+         _minimums = minimums
++
++    # There may be no space left for a ratio (or all of the ratios may be
++    # zero).  In that case the minimums are still meaningful, and returning
++    # them is preferable to asserting or dividing by zero.  The result is
++    # allowed to exceed ``total`` when the minimums cannot all be satisfied.
++    if total_ratio <= 0 or total <= 0:
++        return _minimums[:]
++
++    total_remaining = total
++    distributed_total: List[int] = []
++    append = distributed_total.append
+     for ratio, minimum in zip(ratios, _minimums):
+         if total_ratio > 0:
+             distributed = max(minimum, ceil(ratio * total_remaining / total_ratio))
+         else:
+-            distributed = total_remaining
++            distributed = minimum
+         append(distributed)
+         total_ratio -= ratio
+         total_remaining -= distributed
+diff --git a/rich/table.py b/rich/table.py
+index 1e2eb2b4..180c8140 100644
+--- a/rich/table.py
++++ b/rich/table.py
+@@ -533,6 +533,16 @@ class Table(JupyterMixin):
+ 
+         get_padding_width = self._get_padding_width
+         extra_width = self._extra_width
++        # Keep the minimum width for flexible columns around for the final
++        # reduction below.  Without this, an oversized fixed column could
++        # cause a flexible column to be reduced to zero, making its header and
++        # cells disappear entirely.
++        flexible_minimums = [
++            (column.width or 1) + get_padding_width(column._index)
++            if column.flexible
++            else 0
++            for column in columns
++        ]
+         if self.expand:
+             ratios = [col.ratio or 0 for col in columns if col.flexible]
+             if any(ratios):
+@@ -541,8 +551,8 @@ class Table(JupyterMixin):
+                     for _range, column in zip(width_ranges, columns)
+                 ]
+                 flex_minimum = [
+-                    (column.width or 1) + get_padding_width(column._index)
+-                    for column in columns
++                    minimum
++                    for minimum, column in zip(flexible_minimums, columns)
+                     if column.flexible
+                 ]
+                 flexible_width = max_width - sum(fixed_widths)
+@@ -562,15 +572,36 @@ class Table(JupyterMixin):
+             table_width = sum(widths)
+             # last resort, reduce columns evenly
+             if table_width > max_width:
++                # A flexible column must remain renderable even when fixed
++                # columns consume more space than the console provides.
++                # Reduce only the part above its minimum; otherwise ratio
++                # reduction can turn a column into a zero-width border.
++                widths = [
++                    max(width, minimum)
++                    for width, minimum in zip(widths, flexible_minimums)
++                ]
+                 excess_width = table_width - max_width
+-                widths = ratio_reduce(excess_width, [1] * len(widths), widths, widths)
++                reducible = [
++                    width if not minimum else max(0, width - minimum)
++                    for width, minimum in zip(widths, flexible_minimums)
++                ]
++                widths = ratio_reduce(
++                    excess_width,
++                    [1 if maximum else 0 for maximum in reducible],
++                    reducible,
++                    widths,
++                )
+                 table_width = sum(widths)
+ 
+             width_ranges = [
+                 self._measure_column(console, options.update_width(width), column)
+                 for width, column in zip(widths, columns)
+             ]
+-            widths = [_range.maximum or 0 for _range in width_ranges]
++            widths = [
++                max(_range.maximum or 0, minimum)
++                for _range, minimum in zip(width_ranges, flexible_minimums)
++            ]
++            table_width = sum(widths)
+ 
+         if (table_width < max_width and self.expand) or (
+             self.min_width is not None and table_width < (self.min_width - extra_width)

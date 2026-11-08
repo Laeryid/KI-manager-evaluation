@@ -1,0 +1,72 @@
+diff --git a/rich/_ratio.py b/rich/_ratio.py
+index 5fd5a383..0886c218 100644
+--- a/rich/_ratio.py
++++ b/rich/_ratio.py
+@@ -120,15 +120,21 @@ def ratio_distribute(
+     if minimums:
+         ratios = [ratio if _min else 0 for ratio, _min in zip(ratios, minimums)]
+     total_ratio = sum(ratios)
+-    assert total_ratio > 0, "Sum of ratios must be > 0"
+-
+-    total_remaining = total
+-    distributed_total: List[int] = []
+-    append = distributed_total.append
+     if minimums is None:
+         _minimums = [0] * len(ratios)
+     else:
+         _minimums = minimums
++
++    # There may not be enough room for the requested minimums (in particular
++    # when a table is nested in a very narrow renderable).  Returning the
++    # minimums is preferable to attempting to distribute a negative amount,
++    # and also makes a zero-ratio distribution well-defined.
++    if total <= 0 or total_ratio <= 0:
++        return _minimums[:]
++
++    total_remaining = total
++    distributed_total: List[int] = []
++    append = distributed_total.append
+     for ratio, minimum in zip(ratios, _minimums):
+         if total_ratio > 0:
+             distributed = max(minimum, ceil(ratio * total_remaining / total_ratio))
+diff --git a/rich/table.py b/rich/table.py
+index 1e2eb2b4..075ebf08 100644
+--- a/rich/table.py
++++ b/rich/table.py
+@@ -559,11 +559,34 @@ class Table(JupyterMixin):
+                 [(column.width is None and not column.no_wrap) for column in columns],
+                 max_width,
+             )
++
++            # A flexible column must not disappear while making room for
++            # fixed-width columns.  Apart from making the table unreadable,
++            # a zero-width column also produces collapsed borders ("||").
++            # Keep one cell for its content, as well as its padding, whenever
++            # there is enough space to do so.
++            flexible_minimums = [
++                (column.width or 1) + get_padding_width(column._index)
++                if column.flexible
++                else 0
++                for column in columns
++            ]
++            widths = [
++                max(width, minimum)
++                for width, minimum in zip(widths, flexible_minimums)
++            ]
+             table_width = sum(widths)
+-            # last resort, reduce columns evenly
++            # Last resort, reduce columns evenly. Flexible columns are reduced
++            # only down to their viable minimum.
+             if table_width > max_width:
+                 excess_width = table_width - max_width
+-                widths = ratio_reduce(excess_width, [1] * len(widths), widths, widths)
++                maximum_reductions = [
++                    width - minimum
++                    for width, minimum in zip(widths, flexible_minimums)
++                ]
++                widths = ratio_reduce(
++                    excess_width, [1] * len(widths), maximum_reductions, widths
++                )
+                 table_width = sum(widths)
+ 
+             width_ranges = [

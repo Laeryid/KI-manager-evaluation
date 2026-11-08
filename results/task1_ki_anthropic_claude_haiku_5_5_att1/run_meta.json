@@ -1,0 +1,12 @@
+{
+    "mode":  "ki",
+    "timed_out":  false,
+    "end_time":  "2026-11-08T20:35:55.2551860+01:00",
+    "attempt":  1,
+    "duration_seconds":  355,
+    "task":  "task1",
+    "model":  "anthropic/claude-haiku-5.5",
+    "run_id":  "task1_ki_anthropic_claude_haiku_5_5_att1",
+    "exit_code":  0,
+    "start_time":  "2026-11-08T20:30:00.4495963+01:00"
+}

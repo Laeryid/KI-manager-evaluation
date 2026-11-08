@@ -1,0 +1,160 @@
+diff --git a/rich/console.py b/rich/console.py
+index 67869807..d04a0f7f 100644
+--- a/rich/console.py
++++ b/rich/console.py
+@@ -2397,7 +2397,9 @@ class Console:
+                 css_rules.append("font-weight: bold")
+             if style.italic:
+                 css_rules.append("font-style: italic;")
+-            if style.underline:
++            if style.double_underline:
++                css_rules.append("text-decoration: underline double;")
++            elif style.underline:
+                 css_rules.append("text-decoration: underline;")
+             if style.strike:
+                 css_rules.append("text-decoration: line-through;")
+diff --git a/rich/style.py b/rich/style.py
+index 3806a8c4..ac9b340b 100644
+--- a/rich/style.py
++++ b/rich/style.py
+@@ -57,6 +57,7 @@ class Style:
+         conceal (bool, optional): Enable concealed text. Defaults to None.
+         strike (bool, optional): Enable strikethrough text. Defaults to None.
+         underline2 (bool, optional): Enable doubly underlined text. Defaults to None.
++        double_underline (bool, optional): Enable double underlined text. Defaults to None.
+         frame (bool, optional): Enable framed text. Defaults to None.
+         encircle (bool, optional): Enable encircled text. Defaults to None.
+         overline (bool, optional): Enable overlined text. Defaults to None.
+@@ -101,6 +102,7 @@ class Style:
+         10: "51",
+         11: "52",
+         12: "53",
++        13: "21",
+     }
+ 
+     STYLE_ATTRIBUTES = {
+@@ -122,6 +124,9 @@ class Style:
+         "s": "strike",
+         "underline2": "underline2",
+         "uu": "underline2",
++        "double_underline": "double_underline",
++        "double-underline": "double_underline",
++        "du": "double_underline",
+         "frame": "frame",
+         "encircle": "encircle",
+         "overline": "overline",
+@@ -146,6 +151,7 @@ class Style:
+         frame: Optional[bool] = None,
+         encircle: Optional[bool] = None,
+         overline: Optional[bool] = None,
++        double_underline: Optional[bool] = None,
+         link: Optional[str] = None,
+         meta: Optional[Dict[str, Any]] = None,
+     ):
+@@ -172,6 +178,7 @@ class Style:
+                 frame is not None and 1024,
+                 encircle is not None and 2048,
+                 overline is not None and 4096,
++                double_underline is not None and 8192,
+             )
+         )
+         self._attributes = (
+@@ -190,6 +197,7 @@ class Style:
+                     frame and 1024 or 0,
+                     encircle and 2048 or 0,
+                     overline and 4096 or 0,
++                    double_underline and 8192 or 0,
+                 )
+             )
+             if self._set_attributes
+@@ -285,6 +293,7 @@ class Style:
+     frame = _Bit(10)
+     encircle = _Bit(11)
+     overline = _Bit(12)
++    double_underline = _Bit(13)
+ 
+     @property
+     def link_id(self) -> str:
+@@ -317,7 +326,7 @@ class Style:
+                     append("conceal" if self.conceal else "not conceal")
+                 if bits & (1 << 8):
+                     append("strike" if self.strike else "not strike")
+-            if bits & 0b1111000000000:
++            if bits & 0b11111000000000:
+                 if bits & (1 << 9):
+                     append("underline2" if self.underline2 else "not underline2")
+                 if bits & (1 << 10):
+@@ -326,6 +335,12 @@ class Style:
+                     append("encircle" if self.encircle else "not encircle")
+                 if bits & (1 << 12):
+                     append("overline" if self.overline else "not overline")
++                if bits & (1 << 13):
++                    append(
++                        "double_underline"
++                        if self.double_underline
++                        else "not double_underline"
++                    )
+             if self._color is not None:
+                 append(self._color.name)
+             if self._bgcolor is not None:
+@@ -369,8 +384,8 @@ class Style:
+                     for bit in range(4, 9):
+                         if attributes & (1 << bit):
+                             append(_style_map[bit])
+-                if attributes & 0b1111000000000:
+-                    for bit in range(9, 13):
++                if attributes & 0b11111000000000:
++                    for bit in range(9, 14):
+                         if attributes & (1 << bit):
+                             append(_style_map[bit])
+             if self._color is not None:
+@@ -424,6 +439,7 @@ class Style:
+         yield "underline2", self.underline2, None
+         yield "frame", self.frame, None
+         yield "encircle", self.encircle, None
++        yield "double_underline", self.double_underline, None
+         yield "link", self.link, None
+         if self._meta:
+             yield "meta", self.meta
+@@ -589,7 +605,9 @@ class Style:
+             append("font-weight: bold")
+         if self.italic:
+             append("font-style: italic")
+-        if self.underline:
++        if self.double_underline:
++            append("text-decoration: underline double")
++        elif self.underline:
+             append("text-decoration: underline")
+         if self.strike:
+             append("text-decoration: line-through")
+diff --git a/tests/test_style.py b/tests/test_style.py
+index 84a65a67..670dc0fa 100644
+--- a/tests/test_style.py
++++ b/tests/test_style.py
+@@ -265,3 +265,26 @@ def test_clear_meta_and_links_clears_hash():
+ 
+     clear_style = style.clear_meta_and_links()
+     assert clear_style._hash is None
++
++
++def test_double_underline() -> None:
++    style = Style(double_underline=True)
++    assert style.double_underline is True
++    assert style.underline is None
++    assert str(style) == "double_underline"
++    assert Style.parse("double_underline").double_underline is True
++    assert Style.parse("double-underline").double_underline is True
++    assert Style.parse("du").double_underline is True
++    assert Style.parse("not du").double_underline is False
++
++
++def test_double_underline_combine_and_ansi() -> None:
++    combined = Style(bold=True) + Style(double_underline=True)
++    assert combined.double_underline is True
++    assert combined.bold is True
++    assert Style.combine([Style(underline=True), Style(double_underline=True)]).double_underline
++    assert Style(double_underline=True).render("x", color_system=ColorSystem.TRUECOLOR) == "\x1b[21mx\x1b[0m"
++
++
++def test_double_underline_html() -> None:
++    assert Style(double_underline=True).get_html_style() == "text-decoration: underline double"

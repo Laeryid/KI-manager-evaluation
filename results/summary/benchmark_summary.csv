@@ -1,0 +1,7 @@
+model,mode,total_runs,solved_runs,pass_rate_pct,pass_rate_task1,pass_rate_task2,pass_rate_task3,avg_turns,avg_first_edit_turn,avg_cost_usd,cost_per_solved_usd,avg_ki_calls,avg_exploration_calls
+anthropic/claude-haiku-5.5,baseline,9,5,55.6,0.0,66.7,100.0,18.0,7.1,0.0144,0.0259,0.0,0.4
+anthropic/claude-haiku-5.5,ki,9,6,66.7,0.0,100.0,100.0,14.6,6.6,0.0144,0.0216,1.2,2.0
+google/gemini-2.5-flash,baseline,9,1,11.1,0.0,0.0,33.3,30.0,2.8,0.2066,1.8598,0.0,9.7
+google/gemini-2.5-flash,ki,9,3,33.3,100.0,0.0,0.0,22.6,4.6,0.1531,0.4592,2.9,5.6
+openai/gpt-5.6-luna,baseline,9,9,100.0,100.0,100.0,100.0,15.1,5.4,0.0198,0.0198,0.0,12.0
+openai/gpt-5.6-luna,ki,9,7,77.8,33.3,100.0,100.0,18.4,7.0,0.0274,0.0352,4.9,12.1

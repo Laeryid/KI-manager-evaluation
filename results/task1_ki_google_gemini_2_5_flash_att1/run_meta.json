@@ -1,0 +1,12 @@
+{
+    "mode":  "ki",
+    "timed_out":  false,
+    "end_time":  "2026-11-08T21:48:30.1609414+01:00",
+    "attempt":  1,
+    "duration_seconds":  43,
+    "task":  "task1",
+    "model":  "google/gemini-2.5-flash",
+    "run_id":  "task1_ki_google_gemini_2_5_flash_att1",
+    "exit_code":  0,
+    "start_time":  "2026-11-08T21:47:47.1134011+01:00"
+}

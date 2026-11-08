@@ -1,0 +1,101 @@
+diff --git a/rich/console.py b/rich/console.py
+index 67869807..d04a0f7f 100644
+--- a/rich/console.py
++++ b/rich/console.py
+@@ -2397,7 +2397,9 @@ class Console:
+                 css_rules.append("font-weight: bold")
+             if style.italic:
+                 css_rules.append("font-style: italic;")
+-            if style.underline:
++            if style.double_underline:
++                css_rules.append("text-decoration: underline double;")
++            elif style.underline:
+                 css_rules.append("text-decoration: underline;")
+             if style.strike:
+                 css_rules.append("text-decoration: line-through;")
+diff --git a/rich/default_styles.py b/rich/default_styles.py
+index c18b6095..4d6bfdd8 100644
+--- a/rich/default_styles.py
++++ b/rich/default_styles.py
+@@ -16,6 +16,7 @@ DEFAULT_STYLES: Dict[str, Style] = {
+         reverse=False,
+         conceal=False,
+         strike=False,
++        underline2=False,
+     ),
+     "dim": Style(dim=True),
+     "bright": Style(dim=False),
+@@ -25,6 +26,9 @@ DEFAULT_STYLES: Dict[str, Style] = {
+     "italic": Style(italic=True),
+     "emphasize": Style(italic=True),
+     "underline": Style(underline=True),
++    "double_underline": Style(double_underline=True),
++    "double-underline": Style(double_underline=True),
++    "du": Style(double_underline=True),
+     "blink": Style(blink=True),
+     "blink2": Style(blink2=True),
+     "reverse": Style(reverse=True),
+diff --git a/rich/style.py b/rich/style.py
+index 3806a8c4..75448e6e 100644
+--- a/rich/style.py
++++ b/rich/style.py
+@@ -57,6 +57,7 @@ class Style:
+         conceal (bool, optional): Enable concealed text. Defaults to None.
+         strike (bool, optional): Enable strikethrough text. Defaults to None.
+         underline2 (bool, optional): Enable doubly underlined text. Defaults to None.
++        double_underline (bool, optional): Enable doubly underlined text. Defaults to None.
+         frame (bool, optional): Enable framed text. Defaults to None.
+         encircle (bool, optional): Enable encircled text. Defaults to None.
+         overline (bool, optional): Enable overlined text. Defaults to None.
+@@ -121,7 +122,10 @@ class Style:
+         "strike": "strike",
+         "s": "strike",
+         "underline2": "underline2",
++        "double_underline": "underline2",
++        "double-underline": "underline2",
+         "uu": "underline2",
++        "du": "underline2",
+         "frame": "frame",
+         "encircle": "encircle",
+         "overline": "overline",
+@@ -143,6 +147,7 @@ class Style:
+         conceal: Optional[bool] = None,
+         strike: Optional[bool] = None,
+         underline2: Optional[bool] = None,
++        double_underline: Optional[bool] = None,
+         frame: Optional[bool] = None,
+         encircle: Optional[bool] = None,
+         overline: Optional[bool] = None,
+@@ -157,6 +162,8 @@ class Style:
+ 
+         self._color = None if color is None else _make_color(color)
+         self._bgcolor = None if bgcolor is None else _make_color(bgcolor)
++        if double_underline is not None:
++            underline2 = double_underline
+         self._set_attributes = sum(
+             (
+                 bold is not None,
+@@ -283,6 +290,12 @@ class Style:
+     strike = _Bit(8)
+     underline2 = _Bit(9)
+     frame = _Bit(10)
++
++    @property
++    def double_underline(self) -> bool:
++        """Whether this style enables double underlining."""
++        return bool(self.underline2)
++
+     encircle = _Bit(11)
+     overline = _Bit(12)
+ 
+@@ -589,7 +602,9 @@ class Style:
+             append("font-weight: bold")
+         if self.italic:
+             append("font-style: italic")
+-        if self.underline:
++        if self.double_underline:
++            append("text-decoration: underline double")
++        elif self.underline:
+             append("text-decoration: underline")
+         if self.strike:
+             append("text-decoration: line-through")

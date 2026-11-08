@@ -1,0 +1,107 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..9ac26d65 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -4,8 +4,9 @@ import os
+ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
++from .badge import Badge
+ 
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json", "Badge"]
+ 
+ if TYPE_CHECKING:
+     from .console import Console
+@@ -95,7 +96,7 @@ def print_json(
+         indent (int, optional): Number of spaces to indent. Defaults to 2.
+         highlight (bool, optional): Enable highlighting of output: Defaults to True.
+         skip_keys (bool, optional): Skip keys not of a basic type. Defaults to False.
+-        ensure_ascii (bool, optional): Escape all non-ascii characters. Defaults to False.
++        ensure_ascii (bool, optional): Escape all non-ascii characters. Defaults to False.d
+         check_circular (bool, optional): Check for circular references. Defaults to True.
+         allow_nan (bool, optional): Allow NaN and Infinity values. Defaults to True.
+         default (Callable, optional): A callable that converts values that can not be encoded
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..279ccb9d
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,77 @@
++from typing import Optional
++
++from rich.console import Console, ConsoleOptions, RenderResult
++from rich.measure import Measurement
++from rich.segment import Segment
++from rich.style import StyleType, Style
++from rich.text import Text
++
++class Badge:
++    """A simple UI badge."""
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++    def __rich_console__(
++        self, console: Console, options: ConsoleOptions
++    ) -> RenderResult:
++        """Render the badge to the console."""
++        content = Text(self.text, style=self.style)
++        if self.icon:
++            content = Text(f"{self.icon} ", style=self.style) + content
++
++        width = options.max_width
++        text_width = len(content.plain)
++        
++        # Calculate padding and total width
++        padding_width = 2  # One space on each side of the text
++        total_width = text_width + padding_width
++
++        # Ensure the badge doesn't exceed the console width
++        if total_width > width:
++            # If it does, truncate the text and adjust width
++            content.truncate(width - padding_width)
++            total_width = width
++            text_width = len(content.plain)
++            
++        # Determine border characters
++        if self.pill:
++            left_border = "("
++            right_border = ")"
++        else:
++            left_border = "["
++            right_border = "]"
++
++        # Create segments for the badge
++        segments = [
++            Segment(left_border, Style.parse(self.border_style)),
++            Segment(" "),
++            *content.render(console, options),
++            Segment(" "),
++            Segment(right_border, Style.parse(self.border_style)),
++        ]
++        yield from segments
++
++    def __rich_measure__(
++        self, console: Console, options: ConsoleOptions
++    ) -> Measurement:
++        """Measure the badge's width."""
++        text_width = len(self.text)
++        if self.icon:
++            text_width += len(self.icon) + 1  # +1 for the space
++
++        # Min and max width are the same, as the badge has a fixed width based on its content
++        width = text_width + 4  # 2 for borders, 2 for inner spaces
++        return Measurement(width, width)

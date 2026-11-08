@@ -1,0 +1,100 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..3201947d 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -175,3 +175,6 @@ def inspect(
+ 
+ if __name__ == "__main__":  # pragma: no cover
+     print("Hello, **World**")
++
++from .badge import Badge
++__all__.append("Badge")
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..f84beeb0
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,83 @@
++from typing import Optional
++
++from rich.console import Console, ConsoleOptions, RenderResult, JustifyMethod
++from rich.measure import Measurement
++from rich.segment import Segment
++from rich.style import Style, StyleType
++from rich.text import Text
++
++
++class Badge:
++    """An embeddable UI component for displaying status or labels."""
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++        justify: JustifyMethod = "center", # Re-added justify
++    ) -> None:
++        """Initialize the Badge component.
++
++        Args:
++            text (str): The text content of the badge.
++            style (StyleType, optional): The style for the badge text and background.
++                Defaults to "bold white on blue".
++            border_style (StyleType, optional): The style for the badge border.
++                Defaults to "blue".
++            pill (bool, optional): If True, use curved pill borders; otherwise, use square borders.
++                Defaults to True.
++            icon (str, optional): An optional icon to prepend to the text. Defaults to None.
++        """
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++        self.justify = justify
++
++    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
++        """Render the badge to the console."""
++        text_content = f"{self.icon + ' ' if self.icon else ''}{self.text}"
++
++        if self.pill:
++            left_border = "( "
++            right_border = " )"
++        else:
++            left_border = "[ "
++            right_border = " ]"
++
++        # Create a single Text object that represents the entire badge
++        # Justification will be handled by console.render based on the options
++        badge_text = Text.assemble(
++            (left_border, self.border_style),
++            (text_content, self.style),
++            (right_border, self.border_style),
++        )
++        yield from console.render(badge_text, options.update(justify=self.justify))
++
++
++    def __rich_measure__(self, console: Console, options: ConsoleOptions) -> Measurement:
++        """Measure the badge's width."""
++        text_content = f"{self.icon + ' ' if self.icon else ''}{self.text}"
++
++        if self.pill:
++            left_border = "( "
++            right_border = " )"
++        else:
++            left_border = "[ "
++            right_border = " ]"
++
++        # Create a temporary Text object for measurement
++        measurement_text = Text.assemble(
++            (left_border, self.border_style),
++            (text_content, self.style),
++            (right_border, self.border_style),
++        )
++        # Let the Text object measure itself. It will return min and max width
++        # Pass the badge's justify setting for consistent measurement
++        return console.measure(measurement_text, options.update(justify=self.justify))
++

@@ -1,0 +1,110 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..a1c10010 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -4,8 +4,9 @@ import os
+ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
++from .badge import Badge
+ 
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json", "Badge"]
+ 
+ if TYPE_CHECKING:
+     from .console import Console
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..3065cfb5
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,61 @@
++from typing import Optional
++
++from rich.console import Console, ConsoleOptions, RenderResult
++from rich.measure import Measurement
++from rich.segment import Segment
++from rich.style import Style, StyleType
++from rich.text import Text
++
++
++class Badge:
++    """A minimal badge component.
++
++    Args:
++        text (str): The text to display in the badge.
++        style (StyleType, optional): The style for the badge text and background.
++            Defaults to "bold white on blue".
++        border_style (StyleType, optional): The style for the badge border.
++            Defaults to "blue".
++        pill (bool, optional): If True, renders with curved pill borders.
++            If False, renders with square borders. Defaults to True.
++        icon (Optional[str], optional): An optional icon to prepend to the text.
++            Defaults to None.
++    """
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
++        """Render the badge to the console."""
++        text_content = f"{self.icon} {self.text}" if self.icon else self.text
++        styled_text = Text(f" {text_content} ", style=self.style)
++
++        if self.pill:
++            left_border = Text("(", style=self.border_style)
++            right_border = Text(")", style=self.border_style)
++        else:
++            left_border = Text("[", style=self.border_style)
++            right_border = Text("]", style=self.border_style)
++
++        yield left_border
++        yield styled_text
++        yield right_border
++
++    def __rich_measure__(self, console: Console, options: ConsoleOptions) -> Measurement:
++        """Measure the badge's width."""
++        text_content = f"{self.icon} {self.text}" if self.icon else self.text
++        # +4 for the two border characters and two internal spaces
++        width = console.measure(Text(text_content)).maximum + 4
++        return Measurement(width, width)
+diff --git a/rich/jupyter.py b/rich/jupyter.py
+index 24135a9f..9ae0d58b 100644
+--- a/rich/jupyter.py
++++ b/rich/jupyter.py
+@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Sequence
+ if TYPE_CHECKING:
+     from rich.console import ConsoleRenderable
+ 
+-from . import get_console
++# NOTE: get_console is imported locally within methods to prevent circular imports
+ from .segment import Segment
+ from .terminal_theme import DEFAULT_TERMINAL_THEME
+ 
+@@ -44,6 +44,7 @@ class JupyterMixin:
+         exclude: Sequence[str],
+         **kwargs: Any,
+     ) -> Dict[str, str]:
++        from . import get_console
+         console = get_console()
+         segments = list(console.render(self, console.options))
+         html = _render_segments(segments)
+@@ -97,5 +98,6 @@ def display(segments: Iterable[Segment], text: str) -> None:
+ 
+ def print(*args: Any, **kwargs: Any) -> None:
+     """Proxy for Console print."""
++    from . import get_console
+     console = get_console()
+     return console.print(*args, **kwargs)

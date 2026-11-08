@@ -1,0 +1,103 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..6fe9e22d 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -5,9 +5,10 @@ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
+ 
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json", "Badge"]
+ 
+ if TYPE_CHECKING:
++    from .badge import Badge
+     from .console import Console
+ 
+ # Global console used by alternative print
+@@ -20,6 +21,15 @@ except FileNotFoundError:
+     _IMPORT_CWD = ""
+ 
+ 
++def __getattr__(name: str) -> Any:
++    # Lazily import Badge so that `import rich` stays lightweight.
++    if name == "Badge":
++        from .badge import Badge
++
++        return Badge
++    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
++
++
+ def get_console() -> "Console":
+     """Get a global :class:`~rich.console.Console` instance. This function is used when Rich requires a Console,
+     and hasn't been explicitly given one.
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..df4da1c3
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,65 @@
++from typing import Optional
++
++from .console import Console, ConsoleOptions, RenderResult
++from .jupyter import JupyterMixin
++from .measure import Measurement
++from .style import StyleType
++from .text import Text
++
++
++class Badge(JupyterMixin):
++    """A renderable status badge, optionally drawn as a pill or with square brackets.
++
++    Args:
++        text (str): Text displayed inside the badge.
++        style (StyleType, optional): Style applied to the badge text. Defaults to "bold white on blue".
++        border_style (StyleType, optional): Style applied to the border characters. Defaults to "blue".
++        pill (bool, optional): Use rounded ``( )`` borders if True, square ``[ ]`` borders if False. Defaults to True.
++        icon (str, optional): An optional icon rendered before the text, separated by a space. Defaults to None.
++    """
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++    def __repr__(self) -> str:
++        return f"Badge({self.text!r}, pill={self.pill!r}, icon={self.icon!r})"
++
++    def _build_text(self) -> Text:
++        """Build the badge as a Text object (borders, optional icon, and content)."""
++        content = f"{self.icon} {self.text}" if self.icon else self.text
++        left, right = ("( ", " )") if self.pill else ("[ ", " ]")
++        return Text.assemble(
++            (left, self.border_style),
++            (content, self.style),
++            (right, self.border_style),
++        )
++
++    def __rich_console__(
++        self, console: Console, options: ConsoleOptions
++    ) -> RenderResult:
++        yield self._build_text()
++
++    def __rich_measure__(
++        self, console: Console, options: ConsoleOptions
++    ) -> Measurement:
++        return self._build_text().__rich_measure__(console, options)
++
++
++if __name__ == "__main__":  # pragma: no cover
++    from .console import Console
++
++    c = Console()
++    c.print(Badge("Passing", icon="✔"))
++    c.print(Badge("Failing", pill=False, style="bold white on red", border_style="red"))

@@ -1,0 +1,166 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..37fed606 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -5,11 +5,21 @@ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
+ 
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json", "Badge"]
+ 
+ if TYPE_CHECKING:
++    from .badge import Badge
+     from .console import Console
+ 
++
++def __getattr__(name: str) -> Any:
++    """Lazily expose component classes so importing ``rich`` stays lightweight."""
++    if name == "Badge":
++        from .badge import Badge as _Badge
++
++        return _Badge
++    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
++
+ # Global console used by alternative print
+ _console: Optional["Console"] = None
+ 
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..1e4d0378
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,83 @@
++from typing import Optional, Tuple
++
++from .cells import cell_len
++from .console import Console, ConsoleOptions, RenderResult
++from .measure import Measurement
++from .segment import Segment
++from .style import StyleType
++
++
++class Badge:
++    """A compact, embeddable status badge rendered as a single line.
++
++    The badge is drawn with a pill-style ``( ... )`` or square ``[ ... ]``
++    boundary. Content is padded by exactly one space inside each boundary cap.
++
++    Args:
++        text (str): Text displayed inside the badge.
++        style (StyleType, optional): Style applied to the text. Defaults to "bold white on blue".
++        border_style (StyleType, optional): Style applied to the boundary caps. Defaults to "blue".
++        pill (bool, optional): Use curved pill caps if True, square caps if False. Defaults to True.
++        icon (Optional[str], optional): Optional icon rendered before the text, separated by a space.
++    """
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++    @property
++    def _content(self) -> str:
++        """str: The inner text, including the optional icon."""
++        if self.icon:
++            return f"{self.icon} {self.text}"
++        return self.text
++
++    @property
++    def _caps(self) -> Tuple[str, str]:
++        """Tuple[str, str]: Left and right boundary caps, including inner padding."""
++        return ("( ", " )") if self.pill else ("[ ", " ]")
++
++    def _width(self) -> int:
++        """int: Total cell width of the badge, including caps and inner padding."""
++        left, right = self._caps
++        return cell_len(left) + cell_len(self._content) + cell_len(right)
++
++    def __rich_measure__(
++        self, console: "Console", options: ConsoleOptions
++    ) -> Measurement:
++        width = self._width()
++        return Measurement(width, width)
++
++    def __rich_console__(
++        self, console: "Console", options: ConsoleOptions
++    ) -> RenderResult:
++        left, right = self._caps
++        border = console.get_style(self.border_style)
++        style = console.get_style(self.style)
++        line = [
++            Segment(left, border),
++            Segment(self._content, style),
++            Segment(right, border),
++        ]
++        width = min(self._width(), options.max_width)
++        yield from Segment.adjust_line_length(line, width)
++        yield Segment.line()
++
++
++if __name__ == "__main__":  # pragma: no cover
++    from .console import Console as _Console
++
++    _console = _Console()
++    _console.print(Badge("DEPLOYED", icon="★"))
++    _console.print(Badge("SYSTEM ALERT", pill=False))
+diff --git a/tests/test_badge.py b/tests/test_badge.py
+new file mode 100644
+index 00000000..0b3ce488
+--- /dev/null
++++ b/tests/test_badge.py
+@@ -0,0 +1,44 @@
++from io import StringIO
++
++from rich import Badge
++from rich.console import Console
++from rich.measure import Measurement
++from rich.panel import Panel
++from rich.table import Table
++
++
++def _render(renderable, width: int = 60) -> str:
++    console = Console(file=StringIO(), width=width, color_system=None)
++    console.print(renderable)
++    return console.file.getvalue()
++
++
++def test_pill_badge() -> None:
++    assert _render(Badge("OK")) == "( OK )\n"
++
++
++def test_square_badge() -> None:
++    assert _render(Badge("ALERT", pill=False)) == "[ ALERT ]\n"
++
++
++def test_icon_badge() -> None:
++    assert _render(Badge("DEPLOYED", icon="★")) == "( ★ DEPLOYED )\n"
++
++
++def test_measurement_matches_rendered_width() -> None:
++    console = Console(file=StringIO(), width=60, color_system=None)
++    badge = Badge("DEPLOYED", icon="★")
++    measurement = Measurement.get(console, console.options, badge)
++    assert measurement == Measurement(14, 14)
++
++
++def test_badge_in_table_and_panel() -> None:
++    table = Table("svc", "status")
++    table.add_row("api", Badge("OK"))
++    output = _render(table)
++    assert "( OK )" in output
++    assert "( OK )" in _render(Panel(Badge("OK")))
++
++
++def test_badge_is_cropped_to_narrow_width() -> None:
++    assert _render(Badge("LONGTEXT"), width=8) == "( LONGTE\n"

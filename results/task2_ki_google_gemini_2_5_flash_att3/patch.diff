@@ -1,0 +1,99 @@
+diff --git a/rich/style.py b/rich/style.py
+index 3806a8c4..8547bc2b 100644
+--- a/rich/style.py
++++ b/rich/style.py
+@@ -56,7 +56,7 @@ class Style:
+         reverse (bool, optional): Enabled reverse text. Defaults to None.
+         conceal (bool, optional): Enable concealed text. Defaults to None.
+         strike (bool, optional): Enable strikethrough text. Defaults to None.
+-        underline2 (bool, optional): Enable doubly underlined text. Defaults to None.
++        double_underline (bool, optional): Enable doubly underlined text. Defaults to None.
+         frame (bool, optional): Enable framed text. Defaults to None.
+         encircle (bool, optional): Enable encircled text. Defaults to None.
+         overline (bool, optional): Enable overlined text. Defaults to None.
+@@ -122,6 +122,9 @@ class Style:
+         "s": "strike",
+         "underline2": "underline2",
+         "uu": "underline2",
++        "double_underline": "underline2",
++        "double-underline": "underline2",
++        "du": "underline2",
+         "frame": "frame",
+         "encircle": "encircle",
+         "overline": "overline",
+@@ -142,7 +145,7 @@ class Style:
+         reverse: Optional[bool] = None,
+         conceal: Optional[bool] = None,
+         strike: Optional[bool] = None,
+-        underline2: Optional[bool] = None,
++        double_underline: Optional[bool] = None,
+         frame: Optional[bool] = None,
+         encircle: Optional[bool] = None,
+         overline: Optional[bool] = None,
+@@ -168,7 +171,7 @@ class Style:
+                 reverse is not None and 64,
+                 conceal is not None and 128,
+                 strike is not None and 256,
+-                underline2 is not None and 512,
++                double_underline is not None and 512,
+                 frame is not None and 1024,
+                 encircle is not None and 2048,
+                 overline is not None and 4096,
+@@ -186,7 +189,7 @@ class Style:
+                     reverse and 64 or 0,
+                     conceal and 128 or 0,
+                     strike and 256 or 0,
+-                    underline2 and 512 or 0,
++                    double_underline and 512 or 0,
+                     frame and 1024 or 0,
+                     encircle and 2048 or 0,
+                     overline and 4096 or 0,
+@@ -281,7 +284,7 @@ class Style:
+     reverse = _Bit(6)
+     conceal = _Bit(7)
+     strike = _Bit(8)
+-    underline2 = _Bit(9)
++    double_underline = _Bit(9)
+     frame = _Bit(10)
+     encircle = _Bit(11)
+     overline = _Bit(12)
+@@ -319,7 +322,7 @@ class Style:
+                     append("strike" if self.strike else "not strike")
+             if bits & 0b1111000000000:
+                 if bits & (1 << 9):
+-                    append("underline2" if self.underline2 else "not underline2")
++                    append("double_underline" if self.double_underline else "not double_underline")
+                 if bits & (1 << 10):
+                     append("frame" if self.frame else "not frame")
+                 if bits & (1 << 11):
+@@ -421,7 +424,7 @@ class Style:
+         yield "reverse", self.reverse, None
+         yield "conceal", self.conceal, None
+         yield "strike", self.strike, None
+-        yield "underline2", self.underline2, None
++        yield "double_underline", self.double_underline, None
+         yield "frame", self.frame, None
+         yield "encircle", self.encircle, None
+         yield "link", self.link, None
+@@ -591,6 +594,8 @@ class Style:
+             append("font-style: italic")
+         if self.underline:
+             append("text-decoration: underline")
++        if self.double_underline:
++            append("text-decoration: underline double")
+         if self.strike:
+             append("text-decoration: line-through")
+         if self.overline:
+diff --git a/tests/test_style.py b/tests/test_style.py
+index 84a65a67..7df2644e 100644
+--- a/tests/test_style.py
++++ b/tests/test_style.py
+@@ -30,7 +30,7 @@ def test_str():
+         encircle=True,
+         overline=True,
+     )
+-    expected = "bold dim italic underline blink blink2 reverse conceal strike underline2 frame encircle overline red on black"
++    expected = "bold dim italic underline blink blink2 reverse conceal strike double_underline frame encircle overline red on black"
+     assert str(all_styles) == expected
+     assert str(Style(link="foo")) == "link foo"
+ 

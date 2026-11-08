@@ -1,0 +1,12 @@
+{
+    "mode":  "baseline",
+    "timed_out":  false,
+    "end_time":  "2026-11-08T21:54:38.9464674+01:00",
+    "attempt":  2,
+    "duration_seconds":  227,
+    "task":  "task2",
+    "model":  "google/gemini-2.5-flash",
+    "run_id":  "task2_baseline_google_gemini_2_5_flash_att2",
+    "exit_code":  0,
+    "start_time":  "2026-11-08T21:50:52.1831614+01:00"
+}

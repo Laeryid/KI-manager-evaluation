@@ -1,0 +1,27 @@
+diff --git a/rich/_ratio.py b/rich/_ratio.py
+index 5fd5a383..1dc39a8b 100644
+--- a/rich/_ratio.py
++++ b/rich/_ratio.py
+@@ -120,7 +120,8 @@ def ratio_distribute(
+     if minimums:
+         ratios = [ratio if _min else 0 for ratio, _min in zip(ratios, minimums)]
+     total_ratio = sum(ratios)
+-    assert total_ratio > 0, "Sum of ratios must be > 0"
++    if not total_ratio:
++        return [0] * len(ratios)
+ 
+     total_remaining = total
+     distributed_total: List[int] = []
+diff --git a/rich/table.py b/rich/table.py
+index 1e2eb2b4..d91c2347 100644
+--- a/rich/table.py
++++ b/rich/table.py
+@@ -541,7 +541,7 @@ class Table(JupyterMixin):
+                     for _range, column in zip(width_ranges, columns)
+                 ]
+                 flex_minimum = [
+-                    (column.width or 1) + get_padding_width(column._index)
++                    max(1, column.width or 1) + get_padding_width(column._index)
+                     for column in columns
+                     if column.flexible
+                 ]

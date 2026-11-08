@@ -4,7 +4,6 @@
 # Local artifacts & caches
 .env
 .serena/
-results/
 temp_runs/
 __pycache__/
 *.pyc

@@ -1,0 +1,133 @@
+diff --git a/rich/console.py b/rich/console.py
+index 67869807..4e8743a9 100644
+--- a/rich/console.py
++++ b/rich/console.py
+@@ -2399,6 +2399,8 @@ class Console:
+                 css_rules.append("font-style: italic;")
+             if style.underline:
+                 css_rules.append("text-decoration: underline;")
++            if style.double_underline:
++                css_rules.append("text-decoration: underline double;")
+             if style.strike:
+                 css_rules.append("text-decoration: line-through;")
+ 
+diff --git a/rich/default_styles.py b/rich/default_styles.py
+index c18b6095..7d030adb 100644
+--- a/rich/default_styles.py
++++ b/rich/default_styles.py
+@@ -25,6 +25,7 @@ DEFAULT_STYLES: Dict[str, Style] = {
+     "italic": Style(italic=True),
+     "emphasize": Style(italic=True),
+     "underline": Style(underline=True),
++    "double_underline": Style(double_underline=True),
+     "blink": Style(blink=True),
+     "blink2": Style(blink2=True),
+     "reverse": Style(reverse=True),
+diff --git a/rich/style.py b/rich/style.py
+index 3806a8c4..63c5b752 100644
+--- a/rich/style.py
++++ b/rich/style.py
+@@ -60,6 +60,7 @@ class Style:
+         frame (bool, optional): Enable framed text. Defaults to None.
+         encircle (bool, optional): Enable encircled text. Defaults to None.
+         overline (bool, optional): Enable overlined text. Defaults to None.
++        double_underline (bool, optional): Enable doubly underlined text. Defaults to None.
+         link (str, link): Link URL. Defaults to None.
+ 
+     """
+@@ -84,6 +85,7 @@ class Style:
+         "_hash",
+         "_null",
+         "_meta",
++        "_double_underline",
+     ]
+ 
+     # maps bits on to SGR parameter
+@@ -101,6 +103,7 @@ class Style:
+         10: "51",
+         11: "52",
+         12: "53",
++        13: "21", # Double underline is 21, same as underline2
+     }
+ 
+     STYLE_ATTRIBUTES = {
+@@ -126,6 +129,9 @@ class Style:
+         "encircle": "encircle",
+         "overline": "overline",
+         "o": "overline",
++        "double_underline": "double_underline",
++        "double-underline": "double_underline",
++        "du": "double_underline",
+     }
+ 
+     def __init__(
+@@ -146,6 +152,7 @@ class Style:
+         frame: Optional[bool] = None,
+         encircle: Optional[bool] = None,
+         overline: Optional[bool] = None,
++        double_underline: Optional[bool] = None,
+         link: Optional[str] = None,
+         meta: Optional[Dict[str, Any]] = None,
+     ):
+@@ -172,6 +179,7 @@ class Style:
+                 frame is not None and 1024,
+                 encircle is not None and 2048,
+                 overline is not None and 4096,
++                double_underline is not None and 8192,
+             )
+         )
+         self._attributes = (
+@@ -190,6 +198,7 @@ class Style:
+                     frame and 1024 or 0,
+                     encircle and 2048 or 0,
+                     overline and 4096 or 0,
++                    double_underline and 8192 or 0,
+                 )
+             )
+             if self._set_attributes
+@@ -285,6 +294,7 @@ class Style:
+     frame = _Bit(10)
+     encircle = _Bit(11)
+     overline = _Bit(12)
++    double_underline = _Bit(13)
+ 
+     @property
+     def link_id(self) -> str:
+@@ -326,6 +336,8 @@ class Style:
+                     append("encircle" if self.encircle else "not encircle")
+                 if bits & (1 << 12):
+                     append("overline" if self.overline else "not overline")
++                if bits & (1 << 13):
++                    append("double_underline" if self.double_underline else "not double_underline")
+             if self._color is not None:
+                 append(self._color.name)
+             if self._bgcolor is not None:
+@@ -369,8 +381,8 @@ class Style:
+                     for bit in range(4, 9):
+                         if attributes & (1 << bit):
+                             append(_style_map[bit])
+-                if attributes & 0b1111000000000:
+-                    for bit in range(9, 13):
++                if attributes & 0b11111000000000:
++                    for bit in range(9, 14):
+                         if attributes & (1 << bit):
+                             append(_style_map[bit])
+             if self._color is not None:
+@@ -424,6 +436,8 @@ class Style:
+         yield "underline2", self.underline2, None
+         yield "frame", self.frame, None
+         yield "encircle", self.encircle, None
++        yield "overline", self.overline, None
++        yield "double_underline", self.double_underline, None
+         yield "link", self.link, None
+         if self._meta:
+             yield "meta", self.meta
+@@ -595,6 +609,8 @@ class Style:
+             append("text-decoration: line-through")
+         if self.overline:
+             append("text-decoration: overline")
++        if self.double_underline:
++            append("text-decoration: underline double")
+         return "; ".join(css)
+ 
+     @classmethod

@@ -1,0 +1,23 @@
+diff --git a/rich/_ratio.py b/rich/_ratio.py
+index 5fd5a383..9952089c 100644
+--- a/rich/_ratio.py
++++ b/rich/_ratio.py
+@@ -45,7 +45,7 @@ def ratio_resolve(total: int, edges: Sequence[Edge]) -> List[int]:
+         if remaining <= 0:
+             # No room for flexible edges
+             return [
+-                ((edge.minimum_size or 1) if size is None else size)
++                (edge.minimum_size if size is None else size)
+                 for size, edge in zip(sizes, edges)
+             ]
+         # Calculate number of characters in a ratio portion
+@@ -120,7 +120,8 @@ def ratio_distribute(
+     if minimums:
+         ratios = [ratio if _min else 0 for ratio, _min in zip(ratios, minimums)]
+     total_ratio = sum(ratios)
+-    assert total_ratio > 0, "Sum of ratios must be > 0"
++    if total_ratio == 0:
++        return minimums[:] if minimums else [0] * len(ratios)
+ 
+     total_remaining = total
+     distributed_total: List[int] = []

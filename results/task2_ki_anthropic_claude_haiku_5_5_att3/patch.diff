@@ -1,0 +1,95 @@
+diff --git a/rich/console.py b/rich/console.py
+index 67869807..d04a0f7f 100644
+--- a/rich/console.py
++++ b/rich/console.py
+@@ -2397,7 +2397,9 @@ class Console:
+                 css_rules.append("font-weight: bold")
+             if style.italic:
+                 css_rules.append("font-style: italic;")
+-            if style.underline:
++            if style.double_underline:
++                css_rules.append("text-decoration: underline double;")
++            elif style.underline:
+                 css_rules.append("text-decoration: underline;")
+             if style.strike:
+                 css_rules.append("text-decoration: line-through;")
+diff --git a/rich/style.py b/rich/style.py
+index 3806a8c4..bcb7b7e4 100644
+--- a/rich/style.py
++++ b/rich/style.py
+@@ -57,6 +57,7 @@ class Style:
+         conceal (bool, optional): Enable concealed text. Defaults to None.
+         strike (bool, optional): Enable strikethrough text. Defaults to None.
+         underline2 (bool, optional): Enable doubly underlined text. Defaults to None.
++        double_underline (bool, optional): Alias for ``underline2`` (double underline). Defaults to None.
+         frame (bool, optional): Enable framed text. Defaults to None.
+         encircle (bool, optional): Enable encircled text. Defaults to None.
+         overline (bool, optional): Enable overlined text. Defaults to None.
+@@ -122,6 +123,9 @@ class Style:
+         "s": "strike",
+         "underline2": "underline2",
+         "uu": "underline2",
++        "double_underline": "double_underline",
++        "double-underline": "double_underline",
++        "du": "double_underline",
+         "frame": "frame",
+         "encircle": "encircle",
+         "overline": "overline",
+@@ -148,10 +152,15 @@ class Style:
+         overline: Optional[bool] = None,
+         link: Optional[str] = None,
+         meta: Optional[Dict[str, Any]] = None,
++        double_underline: Optional[bool] = None,
+     ):
+         self._ansi: Optional[str] = None
+         self._style_definition: Optional[str] = None
+ 
++        # ``double_underline`` is an alias for ``underline2`` (both use SGR 21).
++        if underline2 is None and double_underline is not None:
++            underline2 = double_underline
++
+         def _make_color(color: Union[Color, str]) -> Color:
+             return color if isinstance(color, Color) else Color.parse(color)
+ 
+@@ -282,6 +291,7 @@ class Style:
+     conceal = _Bit(7)
+     strike = _Bit(8)
+     underline2 = _Bit(9)
++    double_underline = _Bit(9)  # Alias for underline2 (SGR 21)
+     frame = _Bit(10)
+     encircle = _Bit(11)
+     overline = _Bit(12)
+@@ -589,7 +599,9 @@ class Style:
+             append("font-weight: bold")
+         if self.italic:
+             append("font-style: italic")
+-        if self.underline:
++        if self.double_underline:
++            append("text-decoration: underline double")
++        elif self.underline:
+             append("text-decoration: underline")
+         if self.strike:
+             append("text-decoration: line-through")
+diff --git a/tests/test_style.py b/tests/test_style.py
+index 84a65a67..b6730901 100644
+--- a/tests/test_style.py
++++ b/tests/test_style.py
+@@ -265,3 +265,18 @@ def test_clear_meta_and_links_clears_hash():
+ 
+     clear_style = style.clear_meta_and_links()
+     assert clear_style._hash is None
++
++
++def test_double_underline():
++    style = Style(double_underline=True)
++    assert style.double_underline is True
++    assert Style(double_underline=False).double_underline is False
++    assert Style().double_underline is None
++    assert Style.parse("double_underline").double_underline is True
++    assert Style.parse("double-underline").double_underline is True
++    assert Style.parse("du").double_underline is True
++    assert Style.parse("not du").double_underline is False
++    assert (Style(bold=True) + style).double_underline is True
++    assert Style.combine([Style(bold=True), style]).double_underline is True
++    assert style._make_ansi_codes(ColorSystem.TRUECOLOR) == "21"
++    assert style.get_html_style() == "text-decoration: underline double"

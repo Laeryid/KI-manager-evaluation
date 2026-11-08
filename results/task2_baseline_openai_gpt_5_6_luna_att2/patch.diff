@@ -1,0 +1,94 @@
+diff --git a/rich/console.py b/rich/console.py
+index 67869807..d04a0f7f 100644
+--- a/rich/console.py
++++ b/rich/console.py
+@@ -2397,7 +2397,9 @@ class Console:
+                 css_rules.append("font-weight: bold")
+             if style.italic:
+                 css_rules.append("font-style: italic;")
+-            if style.underline:
++            if style.double_underline:
++                css_rules.append("text-decoration: underline double;")
++            elif style.underline:
+                 css_rules.append("text-decoration: underline;")
+             if style.strike:
+                 css_rules.append("text-decoration: line-through;")
+diff --git a/rich/style.py b/rich/style.py
+index 3806a8c4..67dc2226 100644
+--- a/rich/style.py
++++ b/rich/style.py
+@@ -51,6 +51,7 @@ class Style:
+         dim (bool, optional): Enable dim text. Defaults to None.
+         italic (bool, optional): Enable italic text. Defaults to None.
+         underline (bool, optional): Enable underlined text. Defaults to None.
++        double_underline (bool, optional): Enable doubly underlined text. Defaults to None.
+         blink (bool, optional): Enabled blinking text. Defaults to None.
+         blink2 (bool, optional): Enable fast blinking text. Defaults to None.
+         reverse (bool, optional): Enabled reverse text. Defaults to None.
+@@ -121,6 +122,9 @@ class Style:
+         "strike": "strike",
+         "s": "strike",
+         "underline2": "underline2",
++        "double_underline": "underline2",
++        "double-underline": "underline2",
++        "du": "underline2",
+         "uu": "underline2",
+         "frame": "frame",
+         "encircle": "encircle",
+@@ -137,6 +141,7 @@ class Style:
+         dim: Optional[bool] = None,
+         italic: Optional[bool] = None,
+         underline: Optional[bool] = None,
++        double_underline: Optional[bool] = None,
+         blink: Optional[bool] = None,
+         blink2: Optional[bool] = None,
+         reverse: Optional[bool] = None,
+@@ -157,6 +162,11 @@ class Style:
+ 
+         self._color = None if color is None else _make_color(color)
+         self._bgcolor = None if bgcolor is None else _make_color(bgcolor)
++        # ``underline2`` is the historical name for SGR 21. Keep it as an
++        # alias while exposing the more descriptive public name.
++        double_underline = (
++            underline2 if double_underline is None else double_underline
++        )
+         self._set_attributes = sum(
+             (
+                 bold is not None,
+@@ -168,7 +178,7 @@ class Style:
+                 reverse is not None and 64,
+                 conceal is not None and 128,
+                 strike is not None and 256,
+-                underline2 is not None and 512,
++                double_underline is not None and 512,
+                 frame is not None and 1024,
+                 encircle is not None and 2048,
+                 overline is not None and 4096,
+@@ -186,7 +196,7 @@ class Style:
+                     reverse and 64 or 0,
+                     conceal and 128 or 0,
+                     strike and 256 or 0,
+-                    underline2 and 512 or 0,
++                    double_underline and 512 or 0,
+                     frame and 1024 or 0,
+                     encircle and 2048 or 0,
+                     overline and 4096 or 0,
+@@ -282,6 +292,7 @@ class Style:
+     conceal = _Bit(7)
+     strike = _Bit(8)
+     underline2 = _Bit(9)
++    double_underline = underline2
+     frame = _Bit(10)
+     encircle = _Bit(11)
+     overline = _Bit(12)
+@@ -589,7 +600,9 @@ class Style:
+             append("font-weight: bold")
+         if self.italic:
+             append("font-style: italic")
+-        if self.underline:
++        if self.double_underline:
++            append("text-decoration: underline double")
++        elif self.underline:
+             append("text-decoration: underline")
+         if self.strike:
+             append("text-decoration: line-through")

@@ -1,0 +1,12 @@
+{
+    "mode":  "baseline",
+    "timed_out":  false,
+    "end_time":  "2026-11-08T20:56:56.2966655+01:00",
+    "attempt":  1,
+    "duration_seconds":  84,
+    "task":  "task3",
+    "model":  "anthropic/claude-haiku-5.5",
+    "run_id":  "task3_baseline_anthropic_claude_haiku_5_5_att1",
+    "exit_code":  0,
+    "start_time":  "2026-11-08T20:55:32.5894521+01:00"
+}

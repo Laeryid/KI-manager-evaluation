@@ -1,0 +1,166 @@
+diff --git a/rich/ansi.py b/rich/ansi.py
+index 7de86ce5..f8f9e0fa 100644
+--- a/rich/ansi.py
++++ b/rich/ansi.py
+@@ -66,7 +66,7 @@ SGR_STYLE_MAP = {
+     7: "reverse",
+     8: "conceal",
+     9: "strike",
+-    21: "underline2",
++    21: "double_underline",
+     22: "not dim not bold",
+     23: "not italic",
+     24: "not underline",
+diff --git a/rich/console.py b/rich/console.py
+index 67869807..53237b45 100644
+--- a/rich/console.py
++++ b/rich/console.py
+@@ -2398,7 +2398,12 @@ class Console:
+             if style.italic:
+                 css_rules.append("font-style: italic;")
+             if style.underline:
+-                css_rules.append("text-decoration: underline;")
++                if style.double_underline:
++                    css_rules.append("text-decoration: underline double;")
++                else:
++                    css_rules.append("text-decoration: underline;")
++            elif style.double_underline:
++                css_rules.append("text-decoration: underline double;")
+             if style.strike:
+                 css_rules.append("text-decoration: line-through;")
+ 
+diff --git a/rich/style.py b/rich/style.py
+index 3806a8c4..8dc24f0f 100644
+--- a/rich/style.py
++++ b/rich/style.py
+@@ -56,7 +56,7 @@ class Style:
+         reverse (bool, optional): Enabled reverse text. Defaults to None.
+         conceal (bool, optional): Enable concealed text. Defaults to None.
+         strike (bool, optional): Enable strikethrough text. Defaults to None.
+-        underline2 (bool, optional): Enable doubly underlined text. Defaults to None.
++        double_underline (bool, optional): Enable doubly underlined text. Defaults to None.
+         frame (bool, optional): Enable framed text. Defaults to None.
+         encircle (bool, optional): Enable encircled text. Defaults to None.
+         overline (bool, optional): Enable overlined text. Defaults to None.
+@@ -120,8 +120,9 @@ class Style:
+         "c": "conceal",
+         "strike": "strike",
+         "s": "strike",
+-        "underline2": "underline2",
+-        "uu": "underline2",
++        "double_underline": "double_underline",
++        "double-underline": "double_underline",
++        "du": "double_underline",
+         "frame": "frame",
+         "encircle": "encircle",
+         "overline": "overline",
+@@ -142,7 +143,7 @@ class Style:
+         reverse: Optional[bool] = None,
+         conceal: Optional[bool] = None,
+         strike: Optional[bool] = None,
+-        underline2: Optional[bool] = None,
++        double_underline: Optional[bool] = None,
+         frame: Optional[bool] = None,
+         encircle: Optional[bool] = None,
+         overline: Optional[bool] = None,
+@@ -168,7 +169,7 @@ class Style:
+                 reverse is not None and 64,
+                 conceal is not None and 128,
+                 strike is not None and 256,
+-                underline2 is not None and 512,
++                double_underline is not None and 512,
+                 frame is not None and 1024,
+                 encircle is not None and 2048,
+                 overline is not None and 4096,
+@@ -186,7 +187,7 @@ class Style:
+                     reverse and 64 or 0,
+                     conceal and 128 or 0,
+                     strike and 256 or 0,
+-                    underline2 and 512 or 0,
++                    double_underline and 512 or 0,
+                     frame and 1024 or 0,
+                     encircle and 2048 or 0,
+                     overline and 4096 or 0,
+@@ -281,7 +282,7 @@ class Style:
+     reverse = _Bit(6)
+     conceal = _Bit(7)
+     strike = _Bit(8)
+-    underline2 = _Bit(9)
++    double_underline = _Bit(9)
+     frame = _Bit(10)
+     encircle = _Bit(11)
+     overline = _Bit(12)
+@@ -319,7 +320,7 @@ class Style:
+                     append("strike" if self.strike else "not strike")
+             if bits & 0b1111000000000:
+                 if bits & (1 << 9):
+-                    append("underline2" if self.underline2 else "not underline2")
++                    append("double_underline" if self.double_underline else "not double_underline")
+                 if bits & (1 << 10):
+                     append("frame" if self.frame else "not frame")
+                 if bits & (1 << 11):
+@@ -421,7 +422,7 @@ class Style:
+         yield "reverse", self.reverse, None
+         yield "conceal", self.conceal, None
+         yield "strike", self.strike, None
+-        yield "underline2", self.underline2, None
++        yield "double_underline", self.double_underline, None
+         yield "frame", self.frame, None
+         yield "encircle", self.encircle, None
+         yield "link", self.link, None
+@@ -590,7 +591,12 @@ class Style:
+         if self.italic:
+             append("font-style: italic")
+         if self.underline:
+-            append("text-decoration: underline")
++            if self.double_underline:
++                append("text-decoration: underline double")
++            else:
++                append("text-decoration: underline")
++        elif self.double_underline:
++            append("text-decoration: underline double")
+         if self.strike:
+             append("text-decoration: line-through")
+         if self.overline:
+@@ -743,6 +749,10 @@ class Style:
+         new_style._attributes = (self._attributes & ~style._set_attributes) | (
+             style._attributes & style._set_attributes
+         )
++        if (self.double_underline is False and style.double_underline is True) or (
++            self.double_underline is True and style.double_underline is False
++        ):
++            new_style._attributes &= ~self.underline.bit
+         new_style._set_attributes = self._set_attributes | style._set_attributes
+         new_style._link = style._link or self._link
+         new_style._link_id = style._link_id or self._link_id
+diff --git a/rich/tree.py b/rich/tree.py
+index 9a87d60d..ad897c56 100644
+--- a/rich/tree.py
++++ b/rich/tree.py
+@@ -103,7 +103,7 @@ class Tree(JupyterMixin):
+             if options.ascii_only:
+                 line = self.ASCII_GUIDES[index]
+             else:
+-                guide = 1 if style.bold else (2 if style.underline2 else 0)
++                guide = 1 if style.bold else (2 if style.double_underline else 0)
+                 line = self.TREE_GUIDES[0 if options.legacy_windows else guide][index]
+             return _Segment(line, style)
+ 
+@@ -112,7 +112,7 @@ class Tree(JupyterMixin):
+ 
+         guide_style_stack = StyleStack(get_style(self.guide_style))
+         style_stack = StyleStack(get_style(self.style))
+-        remove_guide_styles = Style(bold=False, underline2=False)
++        remove_guide_styles = Style(bold=False, double_underline=False)
+ 
+         depth = 0
+ 
+@@ -239,7 +239,7 @@ class Segment(NamedTuple):
+     root = Tree("🌲 [b green]Rich Tree", highlight=True, hide_root=True)
+ 
+     node = root.add(":file_folder: Renderables", guide_style="red")
+-    simple_node = node.add(":file_folder: [bold yellow]Atomic", guide_style="uu green")
++    simple_node = node.add(":file_folder: [bold yellow]Atomic", guide_style="double_underline green")
+     simple_node.add(Group("📄 Syntax", syntax))
+     simple_node.add(Group("📄 Markdown", Panel(markdown, border_style="green")))
+ 

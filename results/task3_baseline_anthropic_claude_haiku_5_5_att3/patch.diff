@@ -1,0 +1,171 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..c180fce7 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -5,9 +5,10 @@ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
+ 
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json", "Badge"]
+ 
+ if TYPE_CHECKING:
++    from .badge import Badge
+     from .console import Console
+ 
+ # Global console used by alternative print
+@@ -173,5 +174,14 @@ def inspect(
+     _console.print(_inspect)
+ 
+ 
++def __getattr__(name: str) -> Any:
++    """Lazily import public components so that `import rich` stays lightweight."""
++    if name == "Badge":
++        from .badge import Badge
++
++        return Badge
++    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
++
++
+ if __name__ == "__main__":  # pragma: no cover
+     print("Hello, **World**")
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..f75589c6
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,74 @@
++from typing import TYPE_CHECKING, Optional
++
++from .cells import cell_len
++from .measure import Measurement
++from .style import StyleType
++from .text import Text
++
++if TYPE_CHECKING:
++    from .console import Console, ConsoleOptions, RenderResult
++
++
++class Badge:
++    """A compact, inline status badge.
++
++    Renders as ``( text )`` (pill) or ``[ text ]`` (square), optionally prefixed
++    with an icon. Being a standard renderable, it can be printed directly or
++    embedded in Tables, Panels, Columns, Trees, etc.
++
++    Args:
++        text (str): The text to display in the badge.
++        style (StyleType, optional): Style applied to the badge content.
++            Defaults to "bold white on blue".
++        border_style (StyleType, optional): Style applied to the border characters.
++            Defaults to "blue".
++        pill (bool, optional): Use curved pill borders ``( )`` if True, or square
++            borders ``[ ]`` if False. Defaults to True.
++        icon (str, optional): An optional icon displayed before the text. Defaults to None.
++    """
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++        content = f"{icon} {text}" if icon else text
++        left, right = ("( ", " )") if pill else ("[ ", " ]")
++        self._text = Text.assemble(
++            (left, border_style),
++            (content, style),
++            (right, border_style),
++            no_wrap=True,
++            overflow="ellipsis",
++            end="",
++        )
++
++    def __rich_console__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> "RenderResult":
++        yield from self._text.__rich_console__(console, options)
++
++    def __rich_measure__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> Measurement:
++        # The badge never wraps, so its minimum width is its full cell width.
++        width = cell_len(self._text.plain)
++        return Measurement(width, width).with_maximum(options.max_width)
++
++
++if __name__ == "__main__":  # pragma: no cover
++    from rich import print
++
++    print(Badge("Passing"))
++    print(Badge("Failing", style="bold white on red", border_style="red", pill=False))
++    print(Badge("Deployed", icon="✔", style="bold black on green", border_style="green"))
+diff --git a/tests/test_badge.py b/tests/test_badge.py
+new file mode 100644
+index 00000000..734b6f6d
+--- /dev/null
++++ b/tests/test_badge.py
+@@ -0,0 +1,54 @@
++import rich
++from rich.badge import Badge
++from rich.columns import Columns
++from rich.console import Console
++from rich.measure import Measurement
++from rich.panel import Panel
++from rich.table import Table
++from rich.tree import Tree
++
++
++def render(renderable, width: int = 80) -> str:
++    console = Console(width=width, file=__import__("io").StringIO(), color_system=None)
++    console.print(renderable)
++    return console.file.getvalue()  # type: ignore[attr-defined]
++
++
++def test_pill_default() -> None:
++    assert render(Badge("Passing")) == "( Passing )"
++
++
++def test_square() -> None:
++    assert render(Badge("Failing", pill=False)) == "[ Failing ]"
++
++
++def test_icon() -> None:
++    assert render(Badge("Deployed", icon="OK")) == "( OK Deployed )"
++
++
++def test_top_level_export() -> None:
++    assert "Badge" in rich.__all__
++    assert rich.Badge is Badge
++
++
++def test_measurement_uses_cell_length() -> None:
++    console = Console(width=80)
++    measurement = Measurement.get(console, console.options, Badge("日本"))
++    assert measurement == Measurement(8, 8)
++
++
++def test_measurement_clamped_to_max_width() -> None:
++    console = Console(width=80)
++    options = console.options.update(max_width=5)
++    assert Measurement.get(console, options, Badge("hello")) == Measurement(5, 5)
++
++
++def test_nested_in_table_panel_columns_tree() -> None:
++    table = Table("Service", "Status")
++    table.add_row("api", Badge("up"))
++    assert "( up )" in render(table)
++    assert "( in panel )" in render(Panel(Badge("in panel")))
++    assert "( a )" in render(Columns([Badge("a"), Badge("b", pill=False)]))
++    tree = Tree("root")
++    tree.add(Badge("leaf"))
++    assert "└── ( leaf )" in render(tree)

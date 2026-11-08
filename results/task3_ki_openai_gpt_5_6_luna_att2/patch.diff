@@ -1,0 +1,83 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..a1c10010 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -4,8 +4,9 @@ import os
+ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
++from .badge import Badge
+ 
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json", "Badge"]
+ 
+ if TYPE_CHECKING:
+     from .console import Console
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..c09625f3
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,62 @@
++"""A compact status badge renderable."""
++
++from typing import TYPE_CHECKING, Optional
++
++from .cells import cell_len
++from .measure import Measurement
++from .segment import Segment
++from .style import StyleType
++
++if TYPE_CHECKING:
++    from .console import Console, ConsoleOptions, RenderResult
++
++
++class Badge:
++    """A small, embeddable status badge.
++
++    Args:
++        text: The text displayed in the badge.
++        style: The style applied to the badge content.
++        border_style: The style applied to the badge boundary.
++        pill: Use rounded parenthesis boundaries when ``True``; otherwise use
++            square brackets.
++        icon: An optional icon displayed before the text.
++    """
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++    def __rich_console__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> "RenderResult":
++        """Yield the badge as styled terminal segments."""
++        content = self.text if self.icon is None else f"{self.icon} {self.text}"
++        # A badge is a single-line renderable. Replacing line breaks also
++        # preserves the Segment invariant that segment text has no newlines.
++        content = content.replace("\r", " ").replace("\n", " ")
++        boundary = ("( ", " )") if self.pill else ("[ ", " ]")
++
++        yield Segment(boundary[0], console.get_style(self.border_style))
++        yield Segment(content, console.get_style(self.style))
++        yield Segment(boundary[1], console.get_style(self.border_style))
++
++    def __rich_measure__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> Measurement:
++        """Return the exact number of terminal cells occupied by the badge."""
++        content = self.text if self.icon is None else f"{self.icon} {self.text}"
++        content = content.replace("\r", " ").replace("\n", " ")
++        width = cell_len(content) + 4
++        return Measurement(width, width)

@@ -1,0 +1,98 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..3ee8fdf4 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -4,8 +4,16 @@ import os
+ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
+-
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++from .badge import Badge
++
++__all__ = [
++    "Badge",
++    "get_console",
++    "reconfigure",
++    "print",
++    "inspect",
++    "print_json",
++]
+ 
+ if TYPE_CHECKING:
+     from .console import Console
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..c97782ce
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,69 @@
++"""A compact status badge renderable."""
++
++from typing import TYPE_CHECKING, Optional
++
++from .cells import cell_len
++from .measure import Measurement
++from .segment import Segment
++from .style import StyleType
++
++if TYPE_CHECKING:
++    from .console import Console, ConsoleOptions, RenderResult
++
++
++class Badge:
++    """A styled, embeddable status badge.
++
++    Args:
++        text: The text displayed by the badge.
++        style: The style applied to the badge content and its padding.
++        border_style: The style applied to the badge boundary characters.
++        pill: Use rounded ``( )`` boundaries when true, or square ``[ ]``
++            boundaries when false.
++        icon: An optional icon displayed before the text.
++    """
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++    @property
++    def content(self) -> str:
++        """Return the text and optional icon displayed inside the badge."""
++        return f"{self.icon} {self.text}" if self.icon is not None else self.text
++
++    @property
++    def _plain(self) -> str:
++        """Return the complete plain-text representation of the badge."""
++        left, right = ("(", ")") if self.pill else ("[", "]")
++        return f"{left} {self.content} {right}"
++
++    def __rich_console__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> "RenderResult":
++        """Render the badge as independently styled terminal segments."""
++        left, right = ("(", ")") if self.pill else ("[", "]")
++        border_style = console.get_style(self.border_style)
++        content_style = console.get_style(self.style)
++
++        yield Segment(left, border_style)
++        yield Segment(f" {self.content} ", content_style)
++        yield Segment(right, border_style)
++
++    def __rich_measure__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> Measurement:
++        """Return the exact cell width required by the badge."""
++        width = cell_len(self._plain)
++        return Measurement(width, width)

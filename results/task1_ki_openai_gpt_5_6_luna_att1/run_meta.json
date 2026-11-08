@@ -1,0 +1,12 @@
+{
+    "mode":  "ki",
+    "timed_out":  false,
+    "end_time":  "2026-11-08T21:13:54.8859737+01:00",
+    "attempt":  1,
+    "duration_seconds":  114,
+    "task":  "task1",
+    "model":  "openai/gpt-5.6-luna",
+    "run_id":  "task1_ki_openai_gpt_5_6_luna_att1",
+    "exit_code":  0,
+    "start_time":  "2026-11-08T21:12:00.9945791+01:00"
+}

@@ -1,0 +1,95 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..2ae83f3a 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -4,8 +4,16 @@ import os
+ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
+-
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++from .badge import Badge
++
++__all__ = [
++    "get_console",
++    "reconfigure",
++    "print",
++    "inspect",
++    "print_json",
++    "Badge",
++]
+ 
+ if TYPE_CHECKING:
+     from .console import Console
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..8fd76483
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,66 @@
++"""A compact, embeddable status badge renderable."""
++
++from typing import TYPE_CHECKING, Optional
++
++from .cells import cell_len
++from .measure import Measurement
++from .segment import Segment
++from .style import StyleType
++
++if TYPE_CHECKING:
++    from .console import Console, ConsoleOptions, RenderResult
++
++
++class Badge:
++    """A small label with a styled border.
++
++    ``Badge`` is a single-line renderable and may be used anywhere Rich accepts
++    a renderable, including tables and panels.
++
++    Args:
++        text: The text displayed in the badge.
++        style: Style applied to the badge text.
++        border_style: Style applied to the badge border.
++        pill: Use rounded (parenthesis) borders when true, or square brackets
++            when false.
++        icon: Optional icon displayed before the text.
++    """
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++    @property
++    def _label(self) -> str:
++        """Return the text displayed between the badge borders."""
++        return f"{self.icon} {self.text}" if self.icon is not None else self.text
++
++    def __rich_console__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> "RenderResult":
++        """Render the badge as a stream of styled segments."""
++        left, right = ("(", ")") if self.pill else ("[", "]")
++        yield Segment(left, console.get_style(self.border_style))
++        yield Segment(f" {self._label} ", console.get_style(self.style))
++        yield Segment(right, console.get_style(self.border_style))
++
++    def __rich_measure__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> Measurement:
++        """Return the exact number of cells occupied by the badge."""
++        # There are two border cells and one padding cell on either side of
++        # the label. ``cell_len`` is required here rather than len(), since
++        # terminal characters may occupy more than one cell.
++        width = cell_len(self._label) + 4
++        return Measurement(width, width)

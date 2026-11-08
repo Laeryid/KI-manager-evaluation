@@ -1,0 +1,163 @@
+diff --git a/rich/__init__.py b/rich/__init__.py
+index 3edd12e0..f3bb798c 100644
+--- a/rich/__init__.py
++++ b/rich/__init__.py
+@@ -5,7 +5,7 @@ from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+ 
+ from ._extension import load_ipython_extension  # noqa: F401
+ 
+-__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
++__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json", "Badge"]
+ 
+ if TYPE_CHECKING:
+     from .console import Console
+@@ -173,5 +173,8 @@ def inspect(
+     _console.print(_inspect)
+ 
+ 
++# Imported after the functions above, as rich.jupyter relies on get_console being defined.
++from .badge import Badge  # noqa: E402
++
+ if __name__ == "__main__":  # pragma: no cover
+     print("Hello, **World**")
+diff --git a/rich/badge.py b/rich/badge.py
+new file mode 100644
+index 00000000..dd828352
+--- /dev/null
++++ b/rich/badge.py
+@@ -0,0 +1,76 @@
++from typing import TYPE_CHECKING, Optional
++
++from .cells import cell_len
++from .jupyter import JupyterMixin
++from .measure import Measurement
++from .style import StyleType
++from .text import Text
++
++if TYPE_CHECKING:
++    from .console import Console, ConsoleOptions, RenderResult
++
++
++class Badge(JupyterMixin):
++    """A single-line status badge, e.g. ``( ✔ passed )``.
++
++    Args:
++        text (str): The badge label.
++        style (StyleType, optional): Style applied to the label. Defaults to "bold white on blue".
++        border_style (StyleType, optional): Style applied to the border characters. Defaults to "blue".
++        pill (bool, optional): Use curved pill borders ``( ... )`` if True, or square
++            borders ``[ ... ]`` if False. Defaults to True.
++        icon (str, optional): An optional icon rendered before the label, separated by a space. Defaults to None.
++    """
++
++    def __init__(
++        self,
++        text: str,
++        *,
++        style: StyleType = "bold white on blue",
++        border_style: StyleType = "blue",
++        pill: bool = True,
++        icon: Optional[str] = None,
++    ) -> None:
++        self.text = text
++        self.style = style
++        self.border_style = border_style
++        self.pill = pill
++        self.icon = icon
++
++    @property
++    def _left_border(self) -> str:
++        return "( " if self.pill else "[ "
++
++    @property
++    def _right_border(self) -> str:
++        return " )" if self.pill else " ]"
++
++    @property
++    def _label(self) -> str:
++        return f"{self.icon} {self.text}" if self.icon else self.text
++
++    def __rich_console__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> "RenderResult":
++        badge = Text.assemble(
++            (self._left_border, self.border_style),
++            (self._label, self.style),
++            (self._right_border, self.border_style),
++            no_wrap=True,
++            overflow="ellipsis",
++        )
++        yield from console.render(badge, options)
++
++    def __rich_measure__(
++        self, console: "Console", options: "ConsoleOptions"
++    ) -> Measurement:
++        # The badge never wraps, so its minimum and maximum widths are both the full cell width.
++        width = cell_len(self._left_border + self._label + self._right_border)
++        return Measurement(width, width)
++
++
++if __name__ == "__main__":  # pragma: no cover
++    from rich import print
++
++    print(Badge("passed", icon="✔", style="bold white on green", border_style="green"))
++    print(Badge("v1.2.0", pill=False, style="bold yellow", border_style="yellow"))
+diff --git a/tests/test_badge.py b/tests/test_badge.py
+new file mode 100644
+index 00000000..f5b19a4a
+--- /dev/null
++++ b/tests/test_badge.py
+@@ -0,0 +1,53 @@
++from rich import Badge
++from rich.console import Console
++from rich.measure import Measurement
++from rich.panel import Panel
++from rich.table import Table
++
++
++def render(renderable, width: int = 80) -> str:
++    console = Console(width=width, file=None, color_system=None, legacy_windows=False)
++    with console.capture() as capture:
++        console.print(renderable)
++    return capture.get()
++
++
++def test_pill_default() -> None:
++    assert render(Badge("ok")) == "( ok )\n"
++
++
++def test_square_borders() -> None:
++    assert render(Badge("ok", pill=False)) == "[ ok ]\n"
++
++
++def test_icon() -> None:
++    assert render(Badge("passed", icon="✔")) == "( ✔ passed )\n"
++
++
++def test_measurement_uses_cell_width() -> None:
++    console = Console(width=80)
++    badge = Badge("日本", icon="✔")
++    # "( " + "✔ 日本" (1 + 1 + 4) + " )" = 2 + 6 + 2
++    measurement = Measurement.get(console, console.options, badge)
++    assert measurement == Measurement(10, 10)
++
++
++def test_measurement_clamped_to_max_width() -> None:
++    console = Console(width=5)
++    measurement = Measurement.get(console, console.options, Badge("a" * 20))
++    assert measurement == Measurement(5, 5)
++
++
++def test_crops_instead_of_wrapping() -> None:
++    output = render(Badge("a" * 30), width=12)
++    lines = output.splitlines()
++    assert len(lines) == 1
++    assert lines[0].startswith("( aaa")
++    assert lines[0].endswith("…")
++
++
++def test_nested_in_table_and_panel() -> None:
++    table = Table("status")
++    table.add_row(Badge("ok"))
++    assert "( ok )" in render(table)
++    assert "( ok )" in render(Panel(Badge("ok")))

@@ -1,0 +1,142 @@
+diff --git a/docs/source/style.rst b/docs/source/style.rst
+index 4d5e4df8..7574eb11 100644
+--- a/docs/source/style.rst
++++ b/docs/source/style.rst
+@@ -49,7 +49,7 @@ You can set a style attribute by adding one or more of the following words:
+ 
+ Rich also supports the following styles, which are not well supported and may not display in your terminal:
+ 
+-* ``"underline2"`` or ``"uu"`` for doubly underlined text.
++* ``"double_underline"``, ``"double-underline"``, ``"du"`` or ``"underline2"`` or ``"uu"`` for doubly underlined text.
+ * ``"frame"`` for framed text.
+ * ``"encircle"`` for encircled text.
+ * ``"overline"`` or ``"o"`` for overlined text.
+diff --git a/rich/console.py b/rich/console.py
+index 67869807..d04a0f7f 100644
+--- a/rich/console.py
++++ b/rich/console.py
+@@ -2397,7 +2397,9 @@ class Console:
+                 css_rules.append("font-weight: bold")
+             if style.italic:
+                 css_rules.append("font-style: italic;")
+-            if style.underline:
++            if style.double_underline:
++                css_rules.append("text-decoration: underline double;")
++            elif style.underline:
+                 css_rules.append("text-decoration: underline;")
+             if style.strike:
+                 css_rules.append("text-decoration: line-through;")
+diff --git a/rich/style.py b/rich/style.py
+index 3806a8c4..fed82195 100644
+--- a/rich/style.py
++++ b/rich/style.py
+@@ -57,6 +57,7 @@ class Style:
+         conceal (bool, optional): Enable concealed text. Defaults to None.
+         strike (bool, optional): Enable strikethrough text. Defaults to None.
+         underline2 (bool, optional): Enable doubly underlined text. Defaults to None.
++        double_underline (bool, optional): Enable doubly underlined text (alias of underline2). Defaults to None.
+         frame (bool, optional): Enable framed text. Defaults to None.
+         encircle (bool, optional): Enable encircled text. Defaults to None.
+         overline (bool, optional): Enable overlined text. Defaults to None.
+@@ -122,6 +123,9 @@ class Style:
+         "s": "strike",
+         "underline2": "underline2",
+         "uu": "underline2",
++        "double_underline": "underline2",
++        "double-underline": "underline2",
++        "du": "underline2",
+         "frame": "frame",
+         "encircle": "encircle",
+         "overline": "overline",
+@@ -143,6 +147,7 @@ class Style:
+         conceal: Optional[bool] = None,
+         strike: Optional[bool] = None,
+         underline2: Optional[bool] = None,
++        double_underline: Optional[bool] = None,
+         frame: Optional[bool] = None,
+         encircle: Optional[bool] = None,
+         overline: Optional[bool] = None,
+@@ -151,6 +156,8 @@ class Style:
+     ):
+         self._ansi: Optional[str] = None
+         self._style_definition: Optional[str] = None
++        if double_underline is not None:
++            underline2 = double_underline
+ 
+         def _make_color(color: Union[Color, str]) -> Color:
+             return color if isinstance(color, Color) else Color.parse(color)
+@@ -282,6 +289,7 @@ class Style:
+     conceal = _Bit(7)
+     strike = _Bit(8)
+     underline2 = _Bit(9)
++    double_underline = _Bit(9)
+     frame = _Bit(10)
+     encircle = _Bit(11)
+     overline = _Bit(12)
+@@ -589,7 +597,9 @@ class Style:
+             append("font-weight: bold")
+         if self.italic:
+             append("font-style: italic")
+-        if self.underline:
++        if self.double_underline:
++            append("text-decoration: underline double")
++        elif self.underline:
+             append("text-decoration: underline")
+         if self.strike:
+             append("text-decoration: line-through")
+diff --git a/tests/test_console.py b/tests/test_console.py
+index ef829873..bce611da 100644
+--- a/tests/test_console.py
++++ b/tests/test_console.py
+@@ -1127,3 +1127,9 @@ def test_tty_compatible() -> None:
+     assert not console.is_terminal
+     # Should not have auto-detected
+     assert not console.file.called_isatty
++
++
++def test_export_svg_double_underline() -> None:
++    console = Console(record=True, file=io.StringIO(), width=40)
++    console.print("[du]Hi[/]")
++    assert "text-decoration: underline double;" in console.export_svg()
+diff --git a/tests/test_markup.py b/tests/test_markup.py
+index 13835fac..b616ee40 100644
+--- a/tests/test_markup.py
++++ b/tests/test_markup.py
+@@ -217,3 +217,14 @@ def test_render_meta():
+ 
+     text = render("foo[@click=(1, 2, 3)]bar[/]baz")
+     assert text.get_style_at_offset(console, 3).meta == {"@click": (1, 2, 3)}
++
++
++def test_double_underline_markup() -> None:
++    from rich.console import Console
++    import io
++
++    console = Console(file=io.StringIO(), force_terminal=True, color_system="truecolor")
++    with console.capture() as capture:
++        console.print("[double_underline]Sample[/] [double-underline red]Alert[/]")
++    assert "\x1b[21mSample" in capture.get()
++    assert "\x1b[21;31mAlert" in capture.get()
+diff --git a/tests/test_style.py b/tests/test_style.py
+index 84a65a67..a2bbc9ca 100644
+--- a/tests/test_style.py
++++ b/tests/test_style.py
+@@ -265,3 +265,18 @@ def test_clear_meta_and_links_clears_hash():
+ 
+     clear_style = style.clear_meta_and_links()
+     assert clear_style._hash is None
++
++
++def test_double_underline() -> None:
++    style = Style(double_underline=True)
++    assert style.double_underline
++    assert style.underline2
++    assert Style(double_underline=True) == Style(underline2=True)
++    for name in ("double_underline", "double-underline", "du"):
++        assert Style.parse(name).double_underline
++        assert Style.parse(f"not {name}").double_underline is False
++    assert (Style(bold=True) + Style(double_underline=True)).double_underline
++    assert Style.combine(
++        [Style(italic=True), Style(double_underline=True)]
++    ).double_underline
++    assert "text-decoration: underline double" in Style(double_underline=True).get_html_style()

@@ -1,0 +1,59 @@
+diff --git a/rich/table.py b/rich/table.py
+index 1e2eb2b4..1a13d27d 100644
+--- a/rich/table.py
++++ b/rich/table.py
+@@ -537,20 +537,46 @@ class Table(JupyterMixin):
+             ratios = [col.ratio or 0 for col in columns if col.flexible]
+             if any(ratios):
+                 fixed_widths = [
+-                    0 if column.flexible else _range.maximum
++                    _range.maximum if not column.flexible else 0
+                     for _range, column in zip(width_ranges, columns)
+                 ]
++                # flex_minimum ensures flexible columns get at least their measured minimum
++                # or 1 if no content, plus padding.
+                 flex_minimum = [
+-                    (column.width or 1) + get_padding_width(column._index)
+-                    for column in columns
++                    max(1, width_ranges[index].minimum)
++                    for index, column in enumerate(columns)
+                     if column.flexible
+                 ]
++                # Calculate the width remaining for flexible columns
+                 flexible_width = max_width - sum(fixed_widths)
+-                flex_widths = ratio_distribute(flexible_width, ratios, flex_minimum)
+-                iter_flex_widths = iter(flex_widths)
+-                for index, column in enumerate(columns):
+-                    if column.flexible:
+-                        widths[index] = fixed_widths[index] + next(iter_flex_widths)
++                if flexible_width <= 0:
++                    # If no space or negative space, assign minimums directly to flexible columns
++                    # to prevent collapse and division errors
++                    iter_flex_widths = iter(flex_minimum)
++                    for index, column in enumerate(columns):
++                        if column.flexible:
++                            widths[index] = next(iter_flex_widths)
++                else:
++                    # Distribute remaining space amongst flexible columns
++                    flex_widths = ratio_distribute(flexible_width, ratios, flex_minimum)
++                    iter_flex_widths = iter(flex_widths)
++                    for index, column in enumerate(columns):
++                        if column.flexible:
++                            # flexible columns get their distributed width
++                            widths[index] = next(iter_flex_widths)
++                        else:
++                            # Fixed columns retain their calculated maximum width
++                            widths[index] = fixed_widths[index]
++            else:
++                # No ratios, distribute remaining space if expand is True
++                # This handles cases where expand=True but no ratio columns exist
++                pass
++        # Ensure widths are not less than their measured minimums, especially if they
++        # were constrained by flexible_width <= 0 earlier.
++        widths = [
++            max(actual_width, width_ranges[index].minimum)
++            for index, actual_width in enumerate(widths)
++        ]
+         table_width = sum(widths)
+ 
+         if table_width > max_width:
